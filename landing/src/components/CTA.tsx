@@ -93,6 +93,9 @@ export default function CTA() {
               GitHub
             </a>
           </p>
+          <p className="font-body text-[11px] text-zinc-600 mt-3">
+            This tool is not affiliated with Lovable.dev. Use at your own risk. Always back up your code.
+          </p>
         </footer>
       </div>
     </section>

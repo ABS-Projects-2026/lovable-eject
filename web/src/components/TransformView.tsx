@@ -249,6 +249,11 @@ export default function TransformView({
             </button>
           </div>
         )}
+        {!started && (
+          <p className="text-zinc-500 text-xs text-right mt-2">
+            By proceeding, you confirm you have a git commit or backup of your project.
+          </p>
+        )}
       </div>
 
       {/* Pre-start info panel */}

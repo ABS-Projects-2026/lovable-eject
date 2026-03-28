@@ -127,6 +127,19 @@ tests/                — Mirrors src/ structure, vitest
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
 
+## Disclaimer
+
+lovable-eject is provided as-is, without warranty of any kind. This tool modifies source code, configuration files, and SQL migration files in your project. While every transform creates a `.bak` backup of original files, you should:
+
+- Always commit your code to git before running any transforms
+- Review all changes before deploying to production
+- Test your application thoroughly after migration
+- Keep your own backups of critical data
+
+This tool is not affiliated with, endorsed by, or associated with Lovable.dev or Supabase. All trademarks belong to their respective owners.
+
+The authors and contributors are not responsible for any data loss, service disruption, or other damages resulting from the use of this tool. Use at your own risk.
+
 ## License
 
 [MIT](LICENSE)

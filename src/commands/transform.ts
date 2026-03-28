@@ -34,8 +34,11 @@ export async function transformCommand(
 
     if (dryRun) {
       log.info("Dry run mode — no files will be modified\n");
-    } else if (backup) {
-      log.info("Backup mode — original files saved as .bak\n");
+    } else {
+      log.warn("Make sure you've committed your code to git before proceeding. Backups will be created as .bak files.");
+      if (backup) {
+        log.info("Backup mode — original files saved as .bak\n");
+      }
     }
 
     const steps: TransformStep[] = [
