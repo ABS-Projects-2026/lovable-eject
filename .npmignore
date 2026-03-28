@@ -1,0 +1,35 @@
+# Source & dev files
+tests/
+web/src/
+web/node_modules/
+web/package.json
+web/package-lock.json
+web/tsconfig.json
+web/vite.config.ts
+web/tailwind.config.js
+web/postcss.config.js
+web/index.html
+tasks/
+.claude/
+*.test.ts
+*.bak
+coverage/
+.git/
+.gitignore
+.eslintrc*
+eslint.config.*
+tsconfig.json
+vitest.config.ts
+web-ui.tar.gz
+patch-lovable-eject.cjs
+CLAUDE.md
+CONTRIBUTING.md
+.DS_Store
+
+# Include (implicitly):
+# dist/
+# src/
+# web/dist/
+# package.json
+# README.md
+# LICENSE

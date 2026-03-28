@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #0a0a0b;
+  color: #e4e4e7;
+  font-family: "Satoshi", sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Grain overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
+
+/* Skeleton shimmer */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #141416 25%, #1c1c20 50%, #141416 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.loading-dots::after {
+  content: "...";
+  display: inline-block;
+  width: 0;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: dotsCycle 1.5s steps(4, end) infinite;
+}
+@keyframes dotsCycle { 0% { width: 0; } 100% { width: 1.2em; } }
+
+/* Success ripple */
+.success-ripple { position: relative; }
+.success-ripple::before, .success-ripple::after, .success-ripple .ripple-ring {
+  content: ""; position: absolute; inset: -4px; border-radius: 9999px;
+  border: 1px solid rgba(16, 185, 129, 0); pointer-events: none;
+}
+.success-ripple::before { animation: rippleRing 800ms ease-out forwards; }
+.success-ripple::after { animation: rippleRing 800ms 100ms ease-out forwards; }
+.success-ripple .ripple-ring { animation: rippleRing 800ms 200ms ease-out forwards; }
+@keyframes rippleRing {
+  0% { border-color: rgba(16, 185, 129, 0.4); transform: scaleY(1) scaleX(1); opacity: 1; }
+  100% { border-color: rgba(16, 185, 129, 0); transform: scaleY(4) scaleX(1.02); opacity: 0; }
+}
+
+/* Step card entrance / states */
+.step-card { transition: opacity 300ms ease-out, transform 300ms ease-out, border-color 300ms; }
+.step-hidden { opacity: 0; transform: translateY(20px); pointer-events: none; }
+.step-running { border-left: 2px solid #22d3ee; animation: borderPulse 1.5s ease-in-out infinite; }
+@keyframes borderPulse { 0%, 100% { border-left-color: #22d3ee; } 50% { border-left-color: transparent; } }
+.step-done-flash { border-left: 2px solid #10b981; animation: greenFlash 700ms ease-out forwards; }
+@keyframes greenFlash { 0%, 70% { border-left-color: #10b981; } 100% { border-left-color: #2a2a30; } }
+.check-pop { animation: popIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
+/* Code diff unfold */
+.diff-panel { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 300ms ease-out 150ms, opacity 300ms ease-out 150ms; }
+.diff-panel.diff-visible { max-height: 220px; opacity: 1; }
+
+/* Health check pulse dot */
+.pulse-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #22d3ee; animation: pulseDot 1s ease-in-out infinite; }
+@keyframes pulseDot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
+
+/* ------------------------------------------------------------------ */
+/* File Tree Scanner                                                  */
+/* ------------------------------------------------------------------ */
+.scan-line {
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: #22d3ee;
+  box-shadow: 0 0 8px 2px rgba(34, 211, 238, 0.3);
+  animation: scanSweep 3s linear infinite;
+  pointer-events: none;
+}
+@keyframes scanSweep { 0% { top: 0; } 100% { top: 100%; } }
+
+/* ------------------------------------------------------------------ */
+/* Health Grid                                                        */
+/* ------------------------------------------------------------------ */
+.health-grid-complete { animation: gridPulse 500ms ease-out; }
+@keyframes gridPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.2); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Code Morph                                                         */
+/* ------------------------------------------------------------------ */
+.morph-erase { animation: morphErase 400ms ease-in forwards; }
+@keyframes morphErase {
+  0% { clip-path: inset(0 0 0 0); opacity: 1; }
+  100% { clip-path: inset(0 0 0 100%); opacity: 0; }
+}
+.morph-cursor { display: inline-block; width: 2px; height: 1.1em; background: #22d3ee; vertical-align: text-bottom; animation: cursorBlink 800ms steps(1) infinite; }
+@keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ------------------------------------------------------------------ */
+/* Dependency Graph                                                   */
+/* ------------------------------------------------------------------ */
+.graph-line-break { animation: lineBreak 400ms ease-out forwards; }
+@keyframes lineBreak { 0% { stroke-dasharray: 1000; stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dasharray: 4 4; opacity: 0; } }
+.graph-line-draw { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: lineDraw 400ms ease-out forwards; }
+@keyframes lineDraw { 0% { stroke-dashoffset: 1000; opacity: 0; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+.graph-node-exit { animation: nodeExit 300ms ease-out forwards; }
+@keyframes nodeExit { 0% { opacity: 1; } 100% { opacity: 0; transform: scale(0); } }
+.graph-node-enter { animation: nodeEnter 300ms ease-out forwards; }
+@keyframes nodeEnter { 0% { opacity: 0; transform: scale(0); } 100% { opacity: 1; transform: scale(1); } }
+
+/* ------------------------------------------------------------------ */
+/* Reduced motion                                                     */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+}
