@@ -85,6 +85,37 @@ const STEP_DIFFS: Record<string, { before: string[]; after: string[]; guideLabel
   },
 };
 
+const NEXT_STEPS = [
+  { text: "Run npm install in your project", command: "npm install", why: "Updates your dependencies to remove Lovable packages" },
+  { text: "Run npm run build", command: "npm run build", why: "Verifies everything compiles after the migration" },
+  { text: "Replace YOUR_DOMAIN.com with your actual domain", command: null, why: "Search your project files for this placeholder and replace it" },
+  { text: "Replace com.yourapp.name with your mobile app ID", command: null, why: "Only needed if your app has a Capacitor mobile config" },
+  { text: "Set up your hosting", command: null, why: null },
+];
+
+function CopyPill({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <button
+      onClick={copy}
+      className="inline-flex items-center gap-1.5 font-mono text-xs bg-surface-3 border border-border rounded-md px-2 py-0.5 text-zinc-400 hover:text-accent hover:border-accent/30 transition-colors ml-1"
+      aria-label={`Copy ${text}`}
+    >
+      {text}
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+      </svg>
+      {copied && <span className="text-success text-[10px]">Copied</span>}
+    </button>
+  );
+}
+
 export default function TransformView({
   projectPath,
   analysis,
@@ -94,6 +125,7 @@ export default function TransformView({
 }: TransformViewProps) {
   const { mode } = useViewMode();
   const isGuide = mode === "guide";
+  const topRef = useRef<HTMLDivElement>(null);
 
   const [steps, setSteps] = useState<StepState[]>(
     STEP_NAMES.map((name) => ({ name, status: "pending", description: "" }))
@@ -112,6 +144,8 @@ export default function TransformView({
   const bufferProcessing = useRef(false);
   const bufferSeen = useRef(new Set<string>());
   const rawCompleteRef = useRef(false);
+
+  const realComplete = complete && !dryRun;
 
   function enqueueBuffered(name: string, status: StepState["status"], description: string) {
     const key = `${name}:${status}`;
@@ -141,6 +175,13 @@ export default function TransformView({
     if (!started) return;
     steps.forEach((step) => enqueueBuffered(step.name, step.status, step.description));
   }, [steps, started]);
+
+  // Auto-scroll to top on real completion
+  useEffect(() => {
+    if (realComplete && topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [realComplete]);
 
   const completedStepNames = steps.filter((s) => s.status === "done" || s.status === "skipped").map((s) => s.name);
   const runningStep = steps.find((s) => s.status === "running");
@@ -221,7 +262,17 @@ export default function TransformView({
     : 0;
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" ref={topRef}>
+      {/* Success banner — non-dry-run completion */}
+      {realComplete && (
+        <div className="bg-[#052e16] border border-success/30 rounded-xl p-6 mb-6 animate-slide-up">
+          <h2 className="font-display text-3xl text-success mb-2">Migration complete</h2>
+          <p className="text-zinc-300 text-sm">
+            All transforms applied successfully. Your original files are backed up as <code className="text-accent">.bak</code>
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -229,9 +280,10 @@ export default function TransformView({
             &larr; Back to analysis
           </button>
           <h2 className="font-display text-3xl text-zinc-200">
-            {complete ? (dryRun ? "Preview complete" : "All done.") : "Transform"}
+            {complete ? (dryRun ? "Preview complete" : "What to do now") : "Transform"}
           </h2>
         </div>
+        {/* Pre-start buttons */}
         {!started && (
           <div className="flex gap-3">
             <button
@@ -249,12 +301,61 @@ export default function TransformView({
             </button>
           </div>
         )}
-        {!started && (
-          <p className="text-zinc-500 text-xs text-right mt-2">
-            By proceeding, you confirm you have a git commit or backup of your project.
-          </p>
+        {/* Post real-complete: small re-run link */}
+        {realComplete && (
+          <button onClick={onComplete} className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors">
+            Re-run analysis &rarr;
+          </button>
         )}
       </div>
+      {!started && (
+        <p className="text-zinc-500 text-xs text-right mt-[-16px] mb-4">
+          By proceeding, you confirm you have a git commit or backup of your project.
+        </p>
+      )}
+
+      {/* Next steps checklist — shown prominently for real completion */}
+      {realComplete && (
+        <div className="bg-surface border border-border rounded-xl p-6 mb-6 animate-slide-up">
+          <div className="space-y-4">
+            {NEXT_STEPS.map((item, i) => {
+              const isLast = i === NEXT_STEPS.length - 1;
+              return (
+                <div key={i} className={isLast ? "" : "border-b border-border pb-4"}>
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    {!isLast && (
+                      <input
+                        type="checkbox"
+                        checked={checklist.has(i)}
+                        onChange={() => toggleCheck(i)}
+                        className="accent-success w-4 h-4 mt-1 shrink-0"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <div className={`text-sm font-medium ${checklist.has(i) && !isLast ? "text-zinc-600 line-through" : "text-zinc-200"}`}>
+                        <span className="text-zinc-500 mr-2">{i + 1}.</span>
+                        {item.text}
+                        {item.command && <CopyPill text={item.command} />}
+                      </div>
+                      {item.why && (
+                        <div className="text-xs text-zinc-500 mt-1 ml-5">{item.why}</div>
+                      )}
+                      {isLast && (
+                        <button
+                          onClick={onDeploy}
+                          className="mt-3 w-full py-3 bg-accent text-zinc-900 font-bold text-sm rounded-xl hover:bg-accent/90 hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98] animate-pulse-glow"
+                        >
+                          Continue to Deploy &rarr;
+                        </button>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Pre-start info panel */}
       {!started && (
@@ -269,6 +370,13 @@ export default function TransformView({
 
       {/* Process network — visible from the start, driven by buffered steps for pacing */}
       <ProcessNetwork steps={bufferedSteps} started={started} />
+
+      {/* All systems clean label */}
+      {realComplete && (
+        <div className="text-center text-success text-xs mb-4 -mt-2 animate-fade-in">
+          &#10003; All systems clean
+        </div>
+      )}
 
       {/* Health grid — persists through transform */}
       {analysis && started && (
@@ -304,8 +412,8 @@ export default function TransformView({
         </div>
       )}
 
-      {/* Steps */}
-      <div className="space-y-2">
+      {/* Steps — de-emphasised after real completion */}
+      <div className={`space-y-2 ${realComplete ? "opacity-60" : ""} transition-opacity duration-500`}>
         {steps.map((step) => {
           const diff = STEP_DIFFS[step.name];
           const isVisible = !started || step.status !== "pending";
@@ -372,73 +480,25 @@ export default function TransformView({
         })}
       </div>
 
-      {/* Complete actions */}
-      {complete && (
+      {/* Complete actions — dry-run only */}
+      {complete && dryRun && (
         <div className="mt-8 animate-slide-up">
-          {dryRun ? (
-            <div className="bg-accent/5 border border-accent/20 rounded-xl p-5">
-              <p className="text-zinc-300 text-sm mb-4">
-                Preview mode &mdash; your files are safe, nothing changed. Ready to apply for real?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setDryRun(false); setStarted(false); setComplete(false); }}
-                  className="px-6 py-2 bg-accent text-zinc-900 font-bold text-sm rounded-lg hover:bg-accent/90 hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  Run for real
-                </button>
-                <button onClick={onBack} className="px-4 py-2 text-sm border border-border text-zinc-400 rounded-lg hover:border-zinc-500 hover:text-zinc-200 transition-all">
-                  Back to analysis
-                </button>
-              </div>
+          <div className="bg-accent/5 border border-accent/20 rounded-xl p-5">
+            <p className="text-zinc-300 text-sm mb-4">
+              Preview mode &mdash; your files are safe, nothing changed. Ready to apply for real?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDryRun(false); setStarted(false); setComplete(false); }}
+                className="px-6 py-2 bg-accent text-zinc-900 font-bold text-sm rounded-lg hover:bg-accent/90 hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Run for real
+              </button>
+              <button onClick={onBack} className="px-4 py-2 text-sm border border-border text-zinc-400 rounded-lg hover:border-zinc-500 hover:text-zinc-200 transition-all">
+                Back to analysis
+              </button>
             </div>
-          ) : (
-            <div className="bg-success/5 border border-success/20 rounded-xl p-5">
-              <p className="text-zinc-300 text-sm mb-4">
-                All transforms applied. Originals backed up as <code className="text-accent">.bak</code> files.
-              </p>
-
-              {/* Checklist */}
-              <div className="space-y-2 mb-5">
-                {[
-                  { text: "Run npm install to update your packages", why: "The old Lovable packages were removed — npm needs to sync your node_modules." },
-                  { text: "Run npm run build to check everything compiles", why: "Confirms the code transforms didn't break any imports or types." },
-                  { text: "Replace YOUR_DOMAIN.com with your actual domain", why: "We replaced Lovable URLs with placeholders that you need to fill in." },
-                  { text: "Replace com.yourapp.name with your mobile app ID", why: "Only needed if you have a Capacitor mobile app." },
-                  { text: "Click Deploy \u2192 to set up hosting", why: "Walk through Supabase + Vercel setup to go live." },
-                ].map((item, i) => (
-                  <div key={i}>
-                    <label className="flex items-start gap-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={checklist.has(i)}
-                        onChange={() => toggleCheck(i)}
-                        className="accent-success w-4 h-4 mt-0.5 shrink-0"
-                      />
-                      <span className={`text-sm ${checklist.has(i) ? "text-zinc-600 line-through" : "text-zinc-300"}`}>
-                        {item.text}
-                      </span>
-                    </label>
-                    {isGuide && (
-                      <div className="text-xs text-zinc-600 pl-6 mt-0.5">{item.why}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={onDeploy}
-                  className="px-6 py-2 bg-accent text-zinc-900 font-bold text-sm rounded-lg hover:bg-accent/90 hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98] animate-pulse-glow"
-                >
-                  Deploy &rarr;
-                </button>
-                <button onClick={onComplete} className="px-4 py-2 text-sm border border-border text-zinc-400 rounded-lg hover:border-zinc-500 hover:text-zinc-200 transition-all">
-                  Re-analyse to verify
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
     </div>
