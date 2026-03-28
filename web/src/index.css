@@ -121,6 +121,25 @@ body::before {
 @keyframes nodeEnter { 0% { opacity: 0; transform: scale(0); } 100% { opacity: 1; transform: scale(1); } }
 
 /* ------------------------------------------------------------------ */
+/* Process Network                                                    */
+/* ------------------------------------------------------------------ */
+.pn-connection { transition: stroke 400ms, stroke-width 300ms, stroke-opacity 300ms; }
+.pn-connection-fill { animation: pnConnFill 2s linear forwards; }
+@keyframes pnConnFill { from { stroke-dashoffset: 500; } to { stroke-dashoffset: 0; } }
+.pn-node-pulse { animation: pnNodePulse 1.5s ease-in-out infinite; }
+@keyframes pnNodePulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+.pn-output-ping { animation: pnOutputPing 400ms ease-out forwards; }
+@keyframes pnOutputPing {
+  0% { r: 11; stroke-opacity: 0.6; }
+  100% { r: 20; stroke-opacity: 0; }
+}
+.pn-complete-pulse { animation: pnCompletePulse 800ms ease-out; }
+@keyframes pnCompletePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50% { box-shadow: 0 0 16px 3px rgba(16, 185, 129, 0.15); }
+}
+
+/* ------------------------------------------------------------------ */
 /* Reduced motion                                                     */
 /* ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {

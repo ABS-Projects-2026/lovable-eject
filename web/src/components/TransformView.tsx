@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useViewMode } from "../context/ViewModeContext";
 import type { AnalysisResult } from "../App";
-import DependencyGraph from "./DependencyGraph";
+import ProcessNetwork from "./ProcessNetwork";
 import CodeMorph from "./CodeMorph";
 import HealthGrid from "./HealthGrid";
 
@@ -104,6 +104,44 @@ export default function TransformView({
   const [expandedDiffs, setExpandedDiffs] = useState<Set<string>>(new Set());
   const [checklist, setChecklist] = useState<Set<number>>(new Set());
 
+  // Buffered steps for ProcessNetwork — slowed down so users can follow
+  const [bufferedSteps, setBufferedSteps] = useState<StepState[]>(
+    STEP_NAMES.map((name) => ({ name, status: "pending", description: "" }))
+  );
+  const bufferQueue = useRef<Array<{ name: string; status: StepState["status"]; description: string }>>([]);
+  const bufferProcessing = useRef(false);
+  const bufferSeen = useRef(new Set<string>());
+  const rawCompleteRef = useRef(false);
+
+  function enqueueBuffered(name: string, status: StepState["status"], description: string) {
+    const key = `${name}:${status}`;
+    if (bufferSeen.current.has(key)) return;
+    bufferSeen.current.add(key);
+    bufferQueue.current.push({ name, status, description });
+    drainBuffer();
+  }
+
+  function drainBuffer() {
+    if (bufferProcessing.current || bufferQueue.current.length === 0) return;
+    bufferProcessing.current = true;
+    const event = bufferQueue.current.shift()!;
+    setBufferedSteps((prev) =>
+      prev.map((s) => s.name === event.name ? { ...s, status: event.status, description: event.description } : s)
+    );
+    // Minimum display time per status
+    const delay = event.status === "running" ? 2500 : event.status === "skipped" ? 300 : 500;
+    setTimeout(() => {
+      bufferProcessing.current = false;
+      drainBuffer();
+    }, delay);
+  }
+
+  // Feed real step changes into the buffer queue
+  useEffect(() => {
+    if (!started) return;
+    steps.forEach((step) => enqueueBuffered(step.name, step.status, step.description));
+  }, [steps, started]);
+
   const completedStepNames = steps.filter((s) => s.status === "done" || s.status === "skipped").map((s) => s.name);
   const runningStep = steps.find((s) => s.status === "running");
   const runningIdx = runningStep ? steps.indexOf(runningStep) : -1;
@@ -131,6 +169,11 @@ export default function TransformView({
     setComplete(false);
     setExpandedDiffs(new Set());
     setChecklist(new Set());
+    bufferQueue.current = [];
+    bufferSeen.current = new Set();
+    bufferProcessing.current = false;
+    rawCompleteRef.current = false;
+    setBufferedSteps(STEP_NAMES.map((name) => ({ name, status: "pending", description: "" })));
     setSteps(STEP_NAMES.map((name) => ({ name, status: "pending", description: "" })));
 
     try {
@@ -219,16 +262,14 @@ export default function TransformView({
         </div>
       )}
 
+      {/* Process network — visible from the start, driven by buffered steps for pacing */}
+      <ProcessNetwork steps={bufferedSteps} started={started} />
+
       {/* Health grid — persists through transform */}
       {analysis && started && (
         <div className="mb-4 animate-fade-in">
           <HealthGrid analysis={analysis} completedSteps={completedStepNames} />
         </div>
-      )}
-
-      {/* Dependency graph — during transform */}
-      {started && !complete && (
-        <DependencyGraph completedSteps={completedStepNames} />
       )}
 
       {/* Progress bar */}
