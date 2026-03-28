@@ -50,9 +50,20 @@ Open [localhost:5175](http://localhost:5175) to:
 - **Transform** with one click, watching each step complete with before/after code previews
 - **Deploy** with an interactive checklist, copy-to-clipboard env vars, and health check
 
-<!-- screenshot-dashboard.png -->
+![Landing page](docs/landing.png)
+*Paste your project path and hit Analyse — the file tree scanner shows progress in real-time.*
 
-<!-- screenshot-transform.png -->
+![Analysis dashboard](docs/guide-analyse.png)
+*The dashboard shows risk level, dependency pills, health grid, and collapsible code references.*
+
+![Transform in progress](docs/transform-running.png)
+*The neural network visualization shows data flowing through each transform step with activity feed.*
+
+![Transform complete](docs/transform-complete.png)
+*All transforms landed — check off next steps and deploy.*
+
+![Dev mode](docs/dev-mode.png)
+*Switch to Dev mode for file paths, line numbers, and technical descriptions.*
 
 ## Flags
 
