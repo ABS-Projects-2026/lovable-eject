@@ -38,6 +38,9 @@ const svg = `
   <!-- Subline -->
   <text x="600" y="340" text-anchor="middle" font-family="sans-serif" font-weight="400" font-size="26" fill="#a1a1aa">One command. Your code, your hosting, your money.</text>
 
+  <!-- CTA -->
+  <text x="600" y="390" text-anchor="middle" font-family="sans-serif" font-weight="600" font-size="22" fill="#22d3ee">Free &amp; open source →</text>
+
   <!-- URL bottom-right -->
   <text x="1160" y="598" text-anchor="end" font-family="monospace" font-size="18" fill="#52525b">lovable-eject.vercel.app</text>
 </svg>
