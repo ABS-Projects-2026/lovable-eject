@@ -28,7 +28,7 @@ export default function Hero() {
         aria-hidden="true"
       >
         <span className="font-display text-[120px] sm:text-[160px] text-white/[0.04] line-through decoration-white/[0.06] whitespace-nowrap">
-          \u00a3264/year
+          £264/year
         </span>
       </div>
 

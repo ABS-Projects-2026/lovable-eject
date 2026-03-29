@@ -47,7 +47,7 @@ export default function Problem() {
             </svg>
             <div>
               <h3 className="font-body font-bold text-white text-2xl mb-2">
-                \u00a322/month forever.
+                £22/month forever.
               </h3>
               <p className="font-body text-sm text-zinc-400 leading-relaxed">
                 No eject button. No migration docs. You're locked in until you rewrite everything yourself.
@@ -73,11 +73,11 @@ export default function Problem() {
             <div className="flex flex-wrap gap-6 text-sm">
               <div>
                 <span className="text-zinc-500">Spent so far:</span>
-                <span className="text-warn font-mono font-bold ml-2">\u00a3{spent}</span>
+                <span className="text-warn font-mono font-bold ml-2">£{spent}</span>
               </div>
               <div>
                 <span className="text-zinc-500">lovable-eject saves you:</span>
-                <span className="text-success font-mono font-bold ml-2">\u00a3{savedPerYear}/year</span>
+                <span className="text-success font-mono font-bold ml-2">£{savedPerYear}/year</span>
               </div>
             </div>
           </div>
