@@ -5,6 +5,7 @@ import Solution from "./components/Solution";
 import Showcase from "./components/Showcase";
 import Features from "./components/Features";
 import Modes from "./components/Modes";
+import FAQ from "./components/FAQ";
 import CTA from "./components/CTA";
 import ScrollProgress from "./components/ScrollProgress";
 import BackToTop from "./components/BackToTop";
@@ -20,6 +21,7 @@ export default function App() {
       <Showcase />
       <Features />
       <Modes />
+      <FAQ />
       <CTA />
       <BackToTop />
     </div>

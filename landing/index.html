@@ -9,10 +9,14 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <title>lovable-eject — Migrate Lovable.dev to Free Hosting</title>
+    <title>lovable-eject — Stop Paying for Lovable Hosting | Free Migration Tool</title>
     <meta
       name="description"
-      content="Migrate your Lovable.dev project to free Vercel + Supabase hosting. Automated code transforms, migration fixes, and deployment guide. Open source CLI tool."
+      content="Migrate your Lovable.dev project to free Vercel + Supabase hosting in under 30 minutes. Automated code transforms fix OAuth wrappers, broken migrations, and proprietary dependencies. Free and open source."
+    />
+    <meta
+      name="keywords"
+      content="lovable, lovable.dev, lovable alternative, leave lovable, cancel lovable, lovable hosting, lovable migration, supabase migration, vercel hosting, free hosting, lovable eject"
     />
     <link rel="canonical" href="https://lovable-eject.vercel.app" />
 
@@ -20,36 +24,155 @@
     <meta property="og:type" content="website" />
     <meta
       property="og:title"
-      content="lovable-eject — Migrate Lovable.dev to Free Hosting"
+      content="lovable-eject — Stop Paying for Lovable Hosting"
     />
     <meta
       property="og:description"
-      content="Migrate your Lovable.dev project to free Vercel + Supabase hosting. Automated code transforms, migration fixes, and deployment guide. Open source CLI tool."
+      content="Migrate your Lovable.dev project to free hosting. One command, zero manual edits, full backup."
     />
     <meta
       property="og:image"
       content="https://lovable-eject.vercel.app/screenshots/transform-running.png"
     />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:url" content="https://lovable-eject.vercel.app" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="lovable-eject — Migrate Lovable.dev to Free Hosting"
+      content="lovable-eject — Stop Paying for Lovable Hosting"
     />
     <meta
       name="twitter:description"
-      content="Migrate your Lovable.dev project to free Vercel + Supabase hosting. Automated code transforms, migration fixes, and deployment guide."
+      content="Free CLI tool to migrate Lovable.dev projects to Vercel + Supabase. 10 automated transforms, 149 tests."
     />
     <meta
       name="twitter:image"
       content="https://lovable-eject.vercel.app/screenshots/transform-running.png"
     />
 
-    <!-- Fonts -->
+    <!-- Structured Data: SoftwareApplication -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "lovable-eject",
+        "description": "Migrate Lovable.dev projects to free-tier hosting on Vercel and Supabase. Automated code transforms, migration fixes, and deployment guide.",
+        "url": "https://lovable-eject.vercel.app",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS, Linux, Windows",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "GBP"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "lovable-eject contributors",
+          "url": "https://github.com/ABS-Projects-2026/lovable-eject"
+        }
+      }
+    </script>
+
+    <!-- Structured Data: FAQPage -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is this tool free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, completely free and open source. The CLI, web UI, and all transforms are MIT licensed. No paywalls, no premium tier."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Will I lose my data?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "lovable-eject migrates your code, not your data. Your database rows, user accounts, and uploaded files live on Lovable's Supabase instance. We provide a step-by-step data export guide in the Deploy section to help you transfer everything to your own Supabase project."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I undo the migration?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Every file we modify gets a .bak backup. Run npx lovable-eject restore ./project to revert all changes instantly. We recommend committing to git before running any transforms as an extra safety net."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Will my users still be able to log in?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "If your app uses authentication, existing user accounts are tied to Lovable's Supabase instance. After migration, you'll need to export and import your auth data. The tool detects this automatically and guides you through the process."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What if my project has features the tool doesn't handle?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The tool handles the most common Lovable patterns: OAuth wrappers, tagger, migration SQL issues, deep links, OG images, and Capacitor config. If your project has custom Lovable integrations we haven't seen, the analyse command will flag them and you can handle those manually."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need to know how to code?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Basic terminal familiarity is helpful, but Guide mode explains every step in plain English. The web UI provides a visual dashboard where you can click through the entire migration without typing commands."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How long does the migration take?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The automated part (analyse + transform) takes under a minute. Setting up Supabase and Vercel hosting takes about 15 minutes. Total: under 30 minutes for most projects."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is this affiliated with Lovable.dev?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. lovable-eject is an independent open-source tool. It is not affiliated with, endorsed by, or associated with Lovable.dev."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What hosting do I need after migrating?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We guide you to Vercel (free tier) for your frontend and Supabase (free tier) for your backend. Both have generous free plans that handle most MVPs and side projects with zero hosting cost."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I use this with projects that weren't built on Lovable?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The tool is specifically designed for Lovable.dev projects. It looks for Lovable-specific patterns like @lovable.dev/cloud-auth-js and the integrations/lovable folder. Running it on a non-Lovable project will simply report no issues found."
+            }
+          }
+        ]
+      }
+    </script>
+
+    <!-- Fonts: preconnect + dns-prefetch -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://api.fontshare.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap"
       rel="stylesheet"

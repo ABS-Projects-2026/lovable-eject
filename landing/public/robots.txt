@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://lovable-eject.vercel.app/sitemap.xml
