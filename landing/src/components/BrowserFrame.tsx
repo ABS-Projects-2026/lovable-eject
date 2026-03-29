@@ -33,12 +33,15 @@ export default function BrowserFrame({
         </div>
 
         {/* Screenshot */}
-        <img
-          src={src}
-          alt={alt}
-          loading="lazy"
-          className="w-full block"
-        />
+        <picture>
+          <source srcSet={src.replace(/\.png$/, ".webp")} type="image/webp" />
+          <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            className="w-full block"
+          />
+        </picture>
       </div>
 
       {label && (
