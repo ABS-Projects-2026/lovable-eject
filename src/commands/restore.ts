@@ -67,6 +67,12 @@ export async function restoreProject(
     const originalPath = entry.path.replace(/\.bak$/, "");
     const relPath = relative(projectPath, originalPath);
 
+    // Guard against path traversal — restored path must stay within project root
+    if (relPath.startsWith("..") || relPath.startsWith("/")) {
+      errors.push(`Skipped ${relPath}: path would escape project directory`);
+      continue;
+    }
+
     try {
       if (!dryRun) {
         if (entry.isDirectory) {

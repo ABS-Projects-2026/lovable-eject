@@ -3,8 +3,11 @@ dist/
 *.tsbuildinfo
 .env
 .env.local
+.env.production
 .DS_Store
 coverage/
 *.bak
 web/node_modules/
 web/dist/
+landing/node_modules/
+landing/dist/

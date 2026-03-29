@@ -9,6 +9,8 @@ web/vite.config.ts
 web/tailwind.config.js
 web/postcss.config.js
 web/index.html
+landing/
+docs/
 tasks/
 .claude/
 *.test.ts
@@ -25,6 +27,8 @@ patch-lovable-eject.cjs
 CLAUDE.md
 CONTRIBUTING.md
 .DS_Store
+.env
+.env.*
 
 # Include (implicitly):
 # dist/
