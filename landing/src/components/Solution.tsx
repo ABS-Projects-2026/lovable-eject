@@ -26,18 +26,16 @@ const steps = [
 ];
 
 export default function Solution() {
-  const ref = useScrollReveal<HTMLDivElement>();
-
   return (
     <section id="how-it-works" className="py-24 px-6">
-      <div ref={ref} className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h2 className="font-display text-3xl sm:text-4xl text-white mb-16 text-center">
           One command to freedom
         </h2>
 
-        <div className="flex flex-col gap-24">
+        <div className="flex flex-col gap-28">
           {steps.map((step, i) => (
-            <Step key={step.number} step={step} reverse={i % 2 === 1} />
+            <Step key={step.number} step={step} reverse={i % 2 === 1} index={i} />
           ))}
         </div>
       </div>
@@ -48,9 +46,11 @@ export default function Solution() {
 function Step({
   step,
   reverse,
+  index,
 }: {
   step: (typeof steps)[number];
   reverse: boolean;
+  index: number;
 }) {
   const ref = useScrollReveal<HTMLDivElement>();
 
@@ -59,12 +59,16 @@ function Step({
       ref={ref}
       className={`flex flex-col ${
         reverse ? "lg:flex-row-reverse" : "lg:flex-row"
-      } gap-10 lg:gap-16 items-center`}
+      } gap-10 lg:gap-16 items-center relative`}
     >
-      {/* Text */}
+      {/* Sticky step counter */}
+      <div className="hidden lg:block absolute top-0 right-0 font-mono text-xs text-zinc-600">
+        Step {index + 1} of 3
+      </div>
+
+      {/* Text (40%) */}
       <div className="lg:w-5/12">
         <div className="flex items-center gap-4 mb-4">
-          {/* Step line connector */}
           <span className="flex-shrink-0 w-10 h-10 rounded-full border border-accent/40 flex items-center justify-center font-mono text-sm text-accent">
             {step.number}
           </span>
@@ -74,7 +78,7 @@ function Step({
         <p className="font-body text-zinc-400 leading-relaxed">{step.desc}</p>
       </div>
 
-      {/* Screenshot */}
+      {/* Screenshot (60%) */}
       <div className="lg:w-7/12">
         <BrowserFrame src={step.screenshot} alt={step.alt} />
       </div>

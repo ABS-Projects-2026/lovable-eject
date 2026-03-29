@@ -140,7 +140,6 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
   const ACTIVITY = isGuide ? ACTIVITY_GUIDE : ACTIVITY_DEV;
 
   const [signals, setSignals] = useState<ActiveSignal[]>([]);
-  const [flickerIdx, setFlickerIdx] = useState(-1);
   const [activityLines, setActivityLines] = useState<string[]>([]);
   const [activeStepIdx, setActiveStepIdx] = useState(-1);
   const signalId = useRef(0);
@@ -168,10 +167,10 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
 
         inputConns.forEach(([iIdx]) => {
           const pathD = inPath(iIdx, idx);
-          // Send sequential file-labeled particles
+          // Send sequential file-labeled particles (fast)
           files.forEach((file, fi) => {
-            const baseDelay = fi * 400;
-            [0, 200, 400].forEach((dotDelay, di) => {
+            const baseDelay = fi * 150;
+            [0, 80, 160].forEach((dotDelay, di) => {
               setTimeout(() => {
                 const sig: ActiveSignal = {
                   id: signalId.current++,
@@ -181,7 +180,7 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
                   radius: di === 0 ? 3 : di === 1 ? 2.5 : 2,
                 };
                 setSignals((p) => [...p, sig]);
-                setTimeout(() => setSignals((p) => p.filter((s) => s.id !== sig.id)), 2200);
+                setTimeout(() => setSignals((p) => p.filter((s) => s.id !== sig.id)), 600);
               }, baseDelay + dotDelay);
             });
           });
@@ -196,17 +195,17 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
         const msgs = ACTIVITY[idx] ?? [];
         msgs.forEach((msg, mi) => {
           const t = setTimeout(() => {
-            setActivityLines((prev) => [...prev.slice(-1), msg]);
-          }, mi * 500);
+            setActivityLines([msg]);
+          }, mi * 200);
           activityTimers.current.push(t);
         });
       }
 
       if (step.status === "done") {
-        // Spawn output signals
+        // Spawn output signals (fast)
         const outputConns = PROC_TO_OUT.filter(([p]) => p === idx);
         outputConns.forEach(([, oIdx]) => {
-          [0, 200, 400].forEach((dotDelay, di) => {
+          [0, 80, 160].forEach((dotDelay, di) => {
             setTimeout(() => {
               const sig: ActiveSignal = {
                 id: signalId.current++,
@@ -216,7 +215,7 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
                 radius: di === 0 ? 3 : di === 1 ? 2.5 : 2,
               };
               setSignals((p) => [...p, sig]);
-              setTimeout(() => setSignals((p) => p.filter((s) => s.id !== sig.id)), 2200);
+              setTimeout(() => setSignals((p) => p.filter((s) => s.id !== sig.id)), 600);
             }, dotDelay);
           });
         });
@@ -234,18 +233,7 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
     });
   }, [steps, ACTIVITY]);
 
-  // --- Idle flicker ---
-  useEffect(() => {
-    if (started) { setFlickerIdx(-1); return; }
-    const total = IN_TO_PROC.length + PROC_TO_OUT.length;
-    const tick = () => {
-      setFlickerIdx(Math.floor(Math.random() * total));
-      setTimeout(() => setFlickerIdx(-1), 1000);
-    };
-    const interval = setInterval(tick, 3000);
-    tick();
-    return () => clearInterval(interval);
-  }, [started]);
+  // Idle flicker removed — static connections only
 
   // --- Helpers ---
   function connState(pIdx: number): "idle" | "active" | "complete" | "error" {
@@ -314,12 +302,11 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
         {/* Input→Process connections (base) */}
         {IN_TO_PROC.map(([iIdx, pIdx], ci) => {
           const state = connState(pIdx);
-          const isFlicker = !started && flickerIdx === ci;
           return (
             <path key={`in-${ci}`} d={inPath(iIdx, pIdx)} fill="none"
-              stroke={isFlicker ? "#22d3ee" : connStroke(state)}
+              stroke={connStroke(state)}
               strokeWidth={connWidth(state)}
-              strokeOpacity={isFlicker ? 0.12 : state === "idle" ? 0.4 : 1}
+              strokeOpacity={state === "idle" ? 0.4 : 1}
               className="pn-connection"
             />
           );
@@ -340,13 +327,11 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
         {/* Process→Output connections (base) */}
         {PROC_TO_OUT.map(([pIdx, oIdx], ci) => {
           const state = connState(pIdx);
-          const globalIdx = IN_TO_PROC.length + ci;
-          const isFlicker = !started && flickerIdx === globalIdx;
           return (
             <path key={`out-${ci}`} d={outPath(pIdx, oIdx)} fill="none"
-              stroke={isFlicker ? "#22d3ee" : connStroke(state)}
+              stroke={connStroke(state)}
               strokeWidth={connWidth(state)}
-              strokeOpacity={isFlicker ? 0.12 : state === "idle" ? 0.4 : 1}
+              strokeOpacity={state === "idle" ? 0.4 : 1}
               className="pn-connection"
             />
           );
@@ -357,12 +342,12 @@ export default function ProcessNetwork({ steps, started }: ProcessNetworkProps) 
           <g key={sig.id}>
             <circle r={sig.radius} fill="#22d3ee" opacity={sig.opacity}
               filter={sig.opacity === 1 ? "url(#signalGlow)" : undefined}>
-              <animateMotion dur="2s" fill="freeze" path={sig.pathD} />
+              <animateMotion dur="0.6s" fill="freeze" path={sig.pathD} />
             </circle>
             {sig.label && (
               <text fontSize={8} fill="#22d3ee" fillOpacity={0.7}
                 fontFamily="JetBrains Mono" textAnchor="middle" dy={-8}>
-                <animateMotion dur="2s" fill="freeze" path={sig.pathD} />
+                <animateMotion dur="0.6s" fill="freeze" path={sig.pathD} />
                 {sig.label}
               </text>
             )}

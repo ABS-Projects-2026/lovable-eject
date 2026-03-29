@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { analyseCommand } from "./commands/analyse.js";
 import { transformCommand } from "./commands/transform.js";
 import { deployCommand } from "./commands/deploy.js";
+import { restoreCommand } from "./commands/restore.js";
 
 const program = new Command();
 
@@ -36,5 +37,12 @@ program
   .description("Interactive deployment guide for Vercel + Supabase")
   .argument("<path>", "Path to the Lovable project")
   .action(deployCommand);
+
+program
+  .command("restore")
+  .description("Restore original files from .bak backups (undo a transform)")
+  .argument("<path>", "Path to the project")
+  .option("--dry-run", "Show what would be restored without doing it")
+  .action(restoreCommand);
 
 program.parse();

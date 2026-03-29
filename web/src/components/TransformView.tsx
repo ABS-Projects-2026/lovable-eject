@@ -135,6 +135,12 @@ export default function TransformView({
   const [dryRun, setDryRun] = useState(true);
   const [expandedDiffs, setExpandedDiffs] = useState<Set<string>>(new Set());
   const [checklist, setChecklist] = useState<Set<number>>(new Set());
+  const [restoreStatus, setRestoreStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [restoreResult, setRestoreResult] = useState<{ restored: string[]; removed: string[]; errors: string[] } | null>(null);
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [verifyOutput, setVerifyOutput] = useState<string[]>([]);
+  const [verifyPassed, setVerifyPassed] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Buffered steps for ProcessNetwork — slowed down so users can follow
   const [bufferedSteps, setBufferedSteps] = useState<StepState[]>(
@@ -162,8 +168,8 @@ export default function TransformView({
     setBufferedSteps((prev) =>
       prev.map((s) => s.name === event.name ? { ...s, status: event.status, description: event.description } : s)
     );
-    // Minimum display time per status
-    const delay = event.status === "running" ? 2500 : event.status === "skipped" ? 300 : 500;
+    // Minimum display time per status (fast — animation is confirmation, not a show)
+    const delay = event.status === "running" ? 800 : event.status === "skipped" ? 150 : 300;
     setTimeout(() => {
       bufferProcessing.current = false;
       drainBuffer();
@@ -254,6 +260,65 @@ export default function TransformView({
       console.error("Transform error:", err);
     }
   }, [projectPath, dryRun]);
+
+  const handleRestore = useCallback(async () => {
+    setRestoreStatus("loading");
+    try {
+      const res = await fetch("/api/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: projectPath }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRestoreResult(data);
+        setRestoreStatus("done");
+      } else {
+        setRestoreStatus("error");
+      }
+    } catch {
+      setRestoreStatus("error");
+    }
+  }, [projectPath]);
+
+  const handleVerify = useCallback(async () => {
+    setVerifyStatus("loading");
+    setVerifyOutput([]);
+    setVerifyPassed(false);
+    try {
+      const response = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: projectPath }),
+      });
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) return;
+
+      let buffer = "";
+      while (true) {
+        const { done: readerDone, value } = await reader.read();
+        if (readerDone) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.step === "__complete__") {
+              setVerifyStatus(data.status === "done" ? "done" : "error");
+              setVerifyPassed(data.status === "done");
+              continue;
+            }
+            setVerifyOutput((prev) => [...prev, `[${data.step}] ${data.output}`.slice(0, 200)]);
+          } catch { /* ignore */ }
+        }
+      }
+    } catch {
+      setVerifyStatus("error");
+    }
+  }, [projectPath]);
 
   const doneCount = steps.filter((s) => s.status === "done" || s.status === "skipped").length;
   const progress = (doneCount / steps.length) * 100;
@@ -354,6 +419,70 @@ export default function TransformView({
               );
             })}
           </div>
+
+          {/* Verify build button */}
+          <div className="mt-4 pt-4 border-t border-border">
+            {verifyStatus === "idle" && (
+              <button
+                onClick={handleVerify}
+                className="text-sm text-accent hover:text-accent/80 transition-colors flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                Verify build (npm install + build)
+              </button>
+            )}
+            {verifyStatus === "loading" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-accent">
+                  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  Verifying...
+                </div>
+                <div className="bg-[#0a0a0b] rounded-lg p-3 max-h-32 overflow-y-auto font-mono text-[10px] text-zinc-500">
+                  {verifyOutput.map((line, i) => <div key={i} className="truncate">{line}</div>)}
+                </div>
+              </div>
+            )}
+            {verifyStatus === "done" && verifyPassed && (
+              <div className="flex items-center gap-2 text-sm text-success">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                Build verified successfully
+              </div>
+            )}
+            {verifyStatus === "error" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-danger">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  Build verification failed
+                </div>
+                <div className="bg-[#0a0a0b] rounded-lg p-3 max-h-32 overflow-y-auto font-mono text-[10px] text-zinc-500">
+                  {verifyOutput.map((line, i) => <div key={i} className="truncate">{line}</div>)}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Restore link */}
+          {restoreStatus === "idle" && (
+            <div className="mt-3 text-center">
+              <button
+                onClick={handleRestore}
+                className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors underline underline-offset-2"
+              >
+                Something wrong? Restore original files
+              </button>
+            </div>
+          )}
+          {restoreStatus === "loading" && (
+            <div className="mt-3 text-center text-xs text-zinc-500">Restoring...</div>
+          )}
+          {restoreStatus === "done" && restoreResult && (
+            <div className="mt-3 bg-[#052e16] border border-success/20 rounded-lg p-3 text-xs text-success">
+              Restored {restoreResult.restored.length} files, removed {restoreResult.removed.length} generated files
+            </div>
+          )}
+          {restoreStatus === "error" && (
+            <div className="mt-3 text-center text-xs text-danger">Restore failed. Check the console for details.</div>
+          )}
         </div>
       )}
 
@@ -368,21 +497,61 @@ export default function TransformView({
         </div>
       )}
 
-      {/* Process network — visible from the start, driven by buffered steps for pacing */}
-      <ProcessNetwork steps={bufferedSteps} started={started} />
-
-      {/* All systems clean label */}
+      {/* Compact summary — after real completion */}
       {realComplete && (
-        <div className="text-center text-success text-xs mb-4 -mt-2 animate-fade-in">
-          &#10003; All systems clean
+        <div className="bg-surface border border-border rounded-xl p-5 mb-4 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-zinc-300">
+              <span className="text-success font-medium">{steps.filter((s) => s.status === "done").length} applied</span>
+              {steps.filter((s) => s.status === "skipped").length > 0 && (
+                <span className="text-zinc-500 ml-2">{steps.filter((s) => s.status === "skipped").length} skipped</span>
+              )}
+              <span className="text-zinc-600 ml-2">&mdash; {steps.length} transforms completed</span>
+            </div>
+            <button
+              onClick={() => setShowDetails((v) => !v)}
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              {showDetails ? "Hide details" : "Show details"}
+            </button>
+          </div>
+          {!showDetails && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {steps.map((s) => (
+                <span
+                  key={s.name}
+                  className={`inline-block text-[10px] px-2 py-0.5 rounded-full ${
+                    s.status === "done" ? "bg-success/10 text-success" : "bg-surface-3 text-zinc-600"
+                  }`}
+                >
+                  {s.name.replace(/^(Remove |Replace |Delete |Fix |Clean |Update |Create )/, "")}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Health grid — persists through transform */}
-      {analysis && started && (
-        <div className="mb-4 animate-fade-in">
-          <HealthGrid analysis={analysis} completedSteps={completedStepNames} />
-        </div>
+      {/* Detailed view — always visible during transform, collapsible after real completion */}
+      {(!realComplete || showDetails) && (
+        <>
+          {/* Process network — visible from the start, driven by buffered steps for pacing */}
+          <ProcessNetwork steps={bufferedSteps} started={started} />
+
+          {/* All systems clean label */}
+          {realComplete && (
+            <div className="text-center text-success text-xs mb-4 -mt-2 animate-fade-in">
+              &#10003; All systems clean
+            </div>
+          )}
+
+          {/* Health grid — persists through transform */}
+          {analysis && started && (
+            <div className="mb-4 animate-fade-in">
+              <HealthGrid analysis={analysis} completedSteps={completedStepNames} />
+            </div>
+          )}
+        </>
       )}
 
       {/* Progress bar */}
@@ -412,73 +581,75 @@ export default function TransformView({
         </div>
       )}
 
-      {/* Steps — de-emphasised after real completion */}
-      <div className={`space-y-2 ${realComplete ? "opacity-60" : ""} transition-opacity duration-500`}>
-        {steps.map((step) => {
-          const diff = STEP_DIFFS[step.name];
-          const isVisible = !started || step.status !== "pending";
-          const isRunning = step.status === "running";
-          const isDone = step.status === "done";
-          const showCodeMorph = isDone && diff;
-          const diffVisible = showCodeMorph && (isGuide ? expandedDiffs.has(step.name) : true);
+      {/* Steps — hidden after real completion unless details expanded */}
+      {(!realComplete || showDetails) && (
+        <div className={`space-y-2 transition-opacity duration-500`}>
+          {steps.map((step) => {
+            const diff = STEP_DIFFS[step.name];
+            const isVisible = !started || step.status !== "pending";
+            const isRunning = step.status === "running";
+            const isDone = step.status === "done";
+            const showCodeMorph = isDone && diff;
+            const diffVisible = showCodeMorph && (isGuide ? expandedDiffs.has(step.name) : true);
 
-          return (
-            <div
-              key={step.name}
-              className={`step-card bg-surface border rounded-xl px-5 py-4 ${
-                isRunning ? "step-running border-accent/40"
-                  : isDone ? "step-done-flash border-success/20"
-                  : step.status === "error" ? "border-danger/20"
-                  : "border-border"
-              } ${!isVisible ? "step-hidden" : ""}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <StepIcon status={step.status} />
-                  <div>
-                    <span className={`text-sm font-medium ${step.status === "pending" ? "text-zinc-600" : "text-zinc-200"}`}>
-                      {step.name}
-                    </span>
-                    {isGuide && GUIDE_STEP_DESC[step.name] && step.status !== "pending" && (
-                      <div className="text-xs text-zinc-500 mt-0.5">{GUIDE_STEP_DESC[step.name]}</div>
-                    )}
+            return (
+              <div
+                key={step.name}
+                className={`step-card bg-surface border rounded-xl px-5 py-4 ${
+                  isRunning ? "step-running border-accent/40"
+                    : isDone ? "step-done-flash border-success/20"
+                    : step.status === "error" ? "border-danger/20"
+                    : "border-border"
+                } ${!isVisible ? "step-hidden" : ""}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <StepIcon status={step.status} />
+                    <div>
+                      <span className={`text-sm font-medium ${step.status === "pending" ? "text-zinc-600" : "text-zinc-200"}`}>
+                        {step.name}
+                      </span>
+                      {isGuide && GUIDE_STEP_DESC[step.name] && step.status !== "pending" && (
+                        <div className="text-xs text-zinc-500 mt-0.5">{GUIDE_STEP_DESC[step.name]}</div>
+                      )}
+                    </div>
                   </div>
+                  {step.description && !isGuide && (
+                    <span className={`font-mono text-xs ${step.status === "error" ? "text-danger" : step.status === "skipped" ? "text-zinc-600" : "text-zinc-500"}`}>
+                      {step.description}
+                    </span>
+                  )}
                 </div>
-                {step.description && !isGuide && (
-                  <span className={`font-mono text-xs ${step.status === "error" ? "text-danger" : step.status === "skipped" ? "text-zinc-600" : "text-zinc-500"}`}>
-                    {step.description}
-                  </span>
+
+                {/* Guide mode diff toggle */}
+                {isGuide && isDone && diff && !expandedDiffs.has(step.name) && (
+                  <button onClick={() => toggleDiff(step.name)} className="mt-2 text-accent text-xs hover:underline">
+                    See what changed
+                  </button>
+                )}
+                {isGuide && isDone && diff && expandedDiffs.has(step.name) && (
+                  <button onClick={() => toggleDiff(step.name)} className="mt-2 text-zinc-500 text-xs hover:underline">
+                    Hide diff
+                  </button>
+                )}
+
+                {/* Code morph for key transforms */}
+                {showCodeMorph && (
+                  <div className={`diff-panel ${diffVisible ? "diff-visible" : ""}`}>
+                    <CodeMorph
+                      before={diff.before}
+                      after={diff.after}
+                      trigger={diffVisible ?? false}
+                      guideLabel={diff.guideLabel}
+                      devLabel={diff.devLabel}
+                    />
+                  </div>
                 )}
               </div>
-
-              {/* Guide mode diff toggle */}
-              {isGuide && isDone && diff && !expandedDiffs.has(step.name) && (
-                <button onClick={() => toggleDiff(step.name)} className="mt-2 text-accent text-xs hover:underline">
-                  See what changed
-                </button>
-              )}
-              {isGuide && isDone && diff && expandedDiffs.has(step.name) && (
-                <button onClick={() => toggleDiff(step.name)} className="mt-2 text-zinc-500 text-xs hover:underline">
-                  Hide diff
-                </button>
-              )}
-
-              {/* Code morph for key transforms */}
-              {showCodeMorph && (
-                <div className={`diff-panel ${diffVisible ? "diff-visible" : ""}`}>
-                  <CodeMorph
-                    before={diff.before}
-                    after={diff.after}
-                    trigger={diffVisible ?? false}
-                    guideLabel={diff.guideLabel}
-                    devLabel={diff.devLabel}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Complete actions — dry-run only */}
       {complete && dryRun && (

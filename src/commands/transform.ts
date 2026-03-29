@@ -1,5 +1,6 @@
 import { log, spinner } from "../utils/logger.js";
 import { resolveProjectPath } from "../utils/files.js";
+import { runVerification } from "../transforms/verify.js";
 import { removeLovableDeps, type TransformResult } from "../transforms/remove-deps.js";
 import { deleteLovableIntegration } from "../transforms/delete-lovable-dir.js";
 import { replaceOAuthCalls } from "../transforms/replace-oauth.js";
@@ -126,14 +127,46 @@ export async function transformCommand(
       log.dim(`${skipped.length} step(s) skipped (already clean or not applicable)`);
     }
 
-    // Next steps
+    // Post-transform verification (non-dry-run only)
     if (changed.length > 0 && !dryRun) {
+      const inquirer = await import("inquirer");
+      const { verify } = await inquirer.default.prompt([
+        {
+          type: "confirm",
+          name: "verify",
+          message: "Run npm install && npm run build to verify? (recommended)",
+          default: true,
+        },
+      ]);
+
+      if (verify) {
+        log.heading("Verification");
+
+        const installSpin = spinner("Running npm install...");
+        const result = await runVerification(projectPath);
+        installSpin.stop();
+
+        if (result.install.success) {
+          log.success("npm install succeeded");
+        } else {
+          log.error("npm install failed");
+          log.dim(result.install.errors.join("\n"));
+        }
+
+        if (result.build) {
+          if (result.build.success) {
+            log.success("npm run build succeeded");
+          } else {
+            log.error("npm run build failed");
+            log.dim(result.build.errors.join("\n"));
+          }
+        }
+      }
+
       log.heading("Next Steps");
-      log.info("1. Run 'npm install' to update dependencies");
-      log.info("2. Run 'npm run build' to verify the build succeeds");
-      log.info("3. Search for 'YOUR_DOMAIN' and 'com.yourapp.name' and replace with your values");
-      log.info("4. Update your .env with real Supabase credentials from .env.example");
-      log.info("5. Run 'npx lovable-eject deploy .' for deployment guidance");
+      log.info("1. Search for 'YOUR_DOMAIN' and 'com.yourapp.name' and replace with your values");
+      log.info("2. Update your .env with real Supabase credentials from .env.example");
+      log.info("3. Run 'npx lovable-eject deploy .' for deployment guidance");
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

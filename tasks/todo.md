@@ -51,6 +51,18 @@
 - [x] Verify: tsc build succeeds
 - [x] Verify: node dist/cli.js --help works
 
+- [x] Restore command (CLI + API + web UI + 12 tests)
+- [x] Post-transform verification (verify.ts, CLI prompt, web UI verify button)
+- [x] Speed up neural network animation (600ms particles, 800ms pacing, 200ms activity)
+- [x] Collapse completed steps into summary (compact panel with show/hide details)
+- [x] Integration tests with mock-lovable-project fixture (5 tests)
+- [x] Single `npm run web` command with concurrently
+- [x] Landing page redesign (asymmetric hero, calculator, scroll progress, back-to-top)
+- [x] Verify: 149 tests pass
+- [x] Verify: tsc build succeeds
+- [x] Verify: web vite build succeeds
+- [x] Verify: landing page build succeeds
+
 ### Up Next
 - [ ] Test transforms against real Lovable project (habit-buddy)
 - [ ] Verify build succeeds after transform on real project

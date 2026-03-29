@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
-    "web": "tsx web/server.ts & cd web && npx vite --port 5175",
+    "web": "concurrently --names api,ui --prefix-color cyan,green \"tsx web/server.ts\" \"cd web && npx vite --port 5175\"",
+    "web:dev": "concurrently --names api,ui --prefix-color cyan,green \"tsx web/server.ts\" \"cd web && npx vite --port 5175\"",
     "web:server": "tsx web/server.ts",
     "web:ui": "cd web && npx vite --port 5175",
     "test": "vitest",
@@ -52,6 +53,7 @@
     "@types/express": "^4.17.0",
     "@types/inquirer": "^9.0.0",
     "@types/node": "^20.14.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.0.0",
     "tsx": "^4.16.0",
     "typescript": "^5.5.0",

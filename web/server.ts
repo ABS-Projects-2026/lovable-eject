@@ -28,6 +28,8 @@ import {
   getDnsInstructions,
   getUptimeRobotInstructions,
 } from "../src/commands/deploy.js";
+import { restoreProject } from "../src/commands/restore.js";
+import { verifyInstall, verifyBuild } from "../src/transforms/verify.js";
 
 const app = express();
 const PORT = 5174;
@@ -209,6 +211,69 @@ app.post("/api/deploy", async (req, res) => {
     result.uptimeRobotInstructions = getUptimeRobotInstructions(healthUrl);
 
     res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
+  }
+});
+
+// POST /api/restore — revert .bak files and remove generated files
+app.post("/api/restore", async (req, res) => {
+  try {
+    const { path: inputPath, dryRun = false } = req.body;
+    if (!inputPath) {
+      return res.status(400).json({ error: "Path is required" });
+    }
+
+    const projectPath = resolve(inputPath);
+    await access(projectPath);
+
+    const result = await restoreProject(projectPath, dryRun);
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
+  }
+});
+
+// POST /api/verify — run npm install + build with SSE streaming
+app.post("/api/verify", async (req, res) => {
+  try {
+    const { path: inputPath } = req.body;
+    if (!inputPath) {
+      return res.status(400).json({ error: "Path is required" });
+    }
+
+    const projectPath = resolve(inputPath);
+    await access(projectPath);
+
+    // Set up SSE
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    const send = (step: string, status: string, output: string) => {
+      res.write(`data: ${JSON.stringify({ step, status, output })}\n\n`);
+    };
+
+    // Install
+    send("install", "running", "Running npm install...");
+    const installResult = await verifyInstall(projectPath);
+    send("install", installResult.success ? "done" : "error", installResult.output);
+
+    if (!installResult.success) {
+      send("__complete__", "error", "Install failed");
+      res.end();
+      return;
+    }
+
+    // Build
+    send("build", "running", "Running npm run build...");
+    const buildResult = await verifyBuild(projectPath);
+    send("build", buildResult.success ? "done" : "error", buildResult.output);
+
+    send("__complete__", buildResult.success ? "done" : "error", "");
+    res.end();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: message });
