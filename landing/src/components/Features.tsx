@@ -2,44 +2,20 @@ import { useScrollReveal } from "../hooks/useScrollReveal";
 
 const features = [
   {
-    label: "Remove Lovable deps",
-    desc: "Strips @lovable.dev/cloud-auth-js and lovable-tagger from package.json",
-  },
-  {
     label: "Replace OAuth",
-    desc: "Rewrites Lovable auth calls to standard Supabase signInWithOAuth",
-  },
-  {
-    label: "Delete integration folder",
-    desc: "Removes src/integrations/lovable/ entirely",
+    desc: "Rewrites Lovable\u2019s proprietary login to standard Supabase auth",
   },
   {
     label: "Fix migrations",
-    desc: "Adds IF NOT EXISTS, CASCADE, and COALESCE guards to all SQL",
+    desc: "Adds safety checks to every database command so deployments don\u2019t fail",
   },
   {
-    label: "Remove tagger",
-    desc: "Cleans lovable-tagger from vite.config.ts",
+    label: "Remove dependencies",
+    desc: "Strips all Lovable-specific packages and replaces them with open-source alternatives",
   },
   {
-    label: "Clean domains",
-    desc: "Replaces *.lovable.app and OG image URLs with your domain",
-  },
-  {
-    label: "Update Capacitor",
-    desc: "Swaps app.lovable.UUID deep links with your app ID",
-  },
-  {
-    label: "Generate .env.example",
-    desc: "Creates a template with your Supabase credentials",
-  },
-  {
-    label: "Create vercel.json",
-    desc: "Adds SPA rewrite rules and cache headers",
-  },
-  {
-    label: "Health endpoint",
-    desc: "Creates api/health.js for uptime monitoring",
+    label: "Update deep links",
+    desc: "Fixes mobile app IDs and URL schemes from Lovable\u2019s to yours",
   },
 ];
 
@@ -50,10 +26,10 @@ export default function Features() {
     <section className="py-24 px-6 bg-surface">
       <div ref={ref} className="max-w-5xl mx-auto">
         <h2 className="font-display text-3xl sm:text-4xl text-white mb-14">
-          10 automated transforms
+          What it fixes
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6 mb-10">
           {features.map((f) => (
             <div key={f.label} className="flex items-start gap-3">
               <svg
@@ -73,11 +49,24 @@ export default function Features() {
                 <span className="font-body font-bold text-white text-sm">
                   {f.label}
                 </span>
-                <span className="font-body text-zinc-500 text-sm"> — {f.desc}</span>
+                <span className="font-body text-zinc-500 text-sm"> &mdash; {f.desc}</span>
               </div>
             </div>
           ))}
         </div>
+
+        <p className="font-body text-sm text-zinc-500">
+          Plus 6 more automated transforms.{" "}
+          <a
+            href="https://github.com/ABS-Projects-2026/lovable-eject"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline"
+          >
+            See the full list on GitHub
+          </a>
+          .
+        </p>
       </div>
     </section>
   );

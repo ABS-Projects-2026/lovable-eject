@@ -39,8 +39,7 @@ export default function Hero() {
             Stop paying for<br />Lovable hosting.
           </h1>
           <p className="font-body text-lg sm:text-xl text-zinc-400 max-w-xl mb-8">
-            Migrate your Lovable.dev project to free-tier Vercel + Supabase
-            hosting. One command. Zero manual edits. Full backup.
+            One command. Your code, your hosting, your money.
           </p>
           <button
             onClick={copyCommand}

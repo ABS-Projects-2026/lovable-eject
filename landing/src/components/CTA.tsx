@@ -57,9 +57,9 @@ export default function CTA() {
           </div>
         </div>
 
-        {/* Social proof */}
-        <p className="font-body text-sm text-zinc-600 mb-10">
-          Join 50+ developers who've already migrated
+        {/* Verifiable facts */}
+        <p className="font-body text-zinc-500 text-[13px] mb-10">
+          Open source &middot; MIT licensed &middot; 149 tests passing
         </p>
 
         {/* Web UI alternative */}
@@ -98,6 +98,9 @@ export default function CTA() {
             </a>
           </p>
           <p className="font-body text-[11px] text-zinc-600 mt-3">
+            v0.1.0 &middot; Last updated March 2026
+          </p>
+          <p className="font-body text-[11px] text-zinc-600 mt-1">
             This tool is not affiliated with Lovable.dev. Use at your own risk. Always back up your code.
           </p>
         </footer>

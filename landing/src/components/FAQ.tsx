@@ -43,6 +43,8 @@ const FAQS = [
   },
 ];
 
+const INITIAL_COUNT = 5;
+
 function FAQItem({
   q,
   a,
@@ -79,9 +81,9 @@ function FAQItem({
         onClick={() => setOpen((prev) => !prev)}
         className="w-full flex items-center justify-between gap-4 py-5 text-left group"
       >
-        <span className="font-body font-bold text-zinc-200 text-base">
+        <h3 className="font-body font-bold text-zinc-200 text-base">
           {q}
-        </span>
+        </h3>
         <span
           className={`text-zinc-500 group-hover:text-zinc-300 transition-all duration-200 text-xl leading-none shrink-0 ${
             open ? "rotate-45" : "rotate-0"
@@ -103,6 +105,7 @@ function FAQItem({
 }
 
 export default function FAQ() {
+  const [showAll, setShowAll] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -122,6 +125,8 @@ export default function FAQ() {
     return () => observer.disconnect();
   }, []);
 
+  const visible = showAll ? FAQS : FAQS.slice(0, INITIAL_COUNT);
+
   return (
     <section className="max-w-3xl mx-auto px-6 py-24">
       <h2
@@ -131,9 +136,32 @@ export default function FAQ() {
         Frequently asked questions
       </h2>
       <div className="border-t border-border">
-        {FAQS.map((faq, i) => (
+        {visible.map((faq, i) => (
           <FAQItem key={i} q={faq.q} a={faq.a} delay={i * 50} />
         ))}
+      </div>
+
+      {/* Show more / fewer toggle */}
+      <div className="text-center mt-6">
+        <button
+          onClick={() => setShowAll((prev) => !prev)}
+          className="inline-flex items-center gap-1.5 text-sm font-body text-accent hover:text-accent/80 transition-colors"
+        >
+          {showAll ? "Show fewer" : "Show more questions"}
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform duration-200 ${showAll ? "rotate-180" : ""}`}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
       </div>
     </section>
   );
