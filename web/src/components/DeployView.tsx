@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import CopyButton from "./CopyButton";
 import { useViewMode } from "../context/ViewModeContext";
 
@@ -20,6 +20,17 @@ interface DeployData {
   uptimeRobotInstructions: string[];
 }
 
+// "Why this matters" callouts for Guide mode
+const CARD_WHY: Record<string, string> = {
+  supabase: "Your app\u2019s database was managed by Lovable. This step gives you full control of your own Supabase project.",
+  env: "Your app needs these credentials to connect to your database. Without them, nothing will load.",
+  dns: "This points your domain to your new hosting instead of Lovable\u2019s servers.",
+  health: "This confirms your app is actually running after deployment. If this fails, something went wrong.",
+  uptime: "Free monitoring that pings your app every 5 minutes. You\u2019ll get an email if it ever goes down.",
+};
+
+const CARD_KEYS = ["supabase", "env", "dns", "health", "uptime"] as const;
+
 export default function DeployView({ projectPath, onBack }: DeployViewProps) {
   const { mode } = useViewMode();
   const isGuide = mode === "guide";
@@ -33,6 +44,62 @@ export default function DeployView({ projectPath, onBack }: DeployViewProps) {
   const [healthResult, setHealthResult] = useState<
     DeployData["healthCheck"] | null
   >(null);
+
+  // Guide mode: track card open states and which have been opened
+  const [cardOpen, setCardOpen] = useState<Record<string, boolean>>({});
+  const [everOpened, setEverOpened] = useState<Set<string>>(new Set());
+  const [showComplete, setShowComplete] = useState(false);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Initialize card states based on mode
+  useEffect(() => {
+    if (isGuide) {
+      // Only first card open in guide mode
+      setCardOpen({
+        supabase: true,
+        env: false,
+        dns: false,
+        health: false,
+        uptime: false,
+      });
+      setEverOpened(new Set(["supabase"]));
+    } else {
+      // Dev mode: all except uptime open (original behavior)
+      setCardOpen({
+        supabase: true,
+        env: true,
+        dns: !!deployData?.customDomain,
+        health: true,
+        uptime: false,
+      });
+    }
+  }, [isGuide, deployData?.customDomain]);
+
+  // Guide mode: check if all cards have been opened
+  useEffect(() => {
+    if (!isGuide) return;
+    if (CARD_KEYS.every((k) => everOpened.has(k)) && !showComplete) {
+      setShowComplete(true);
+    }
+  }, [everOpened, isGuide, showComplete]);
+
+  const toggleCard = (key: string) => {
+    setCardOpen((prev) => {
+      const isOpening = !prev[key];
+      if (isGuide && isOpening) {
+        setEverOpened((s) => {
+          const next = new Set(s);
+          next.add(key);
+          return next;
+        });
+        // Smooth scroll to the card in guide mode
+        setTimeout(() => {
+          cardRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      }
+      return { ...prev, [key]: !prev[key] };
+    });
+  };
 
   useEffect(() => {
     const fetchDeploy = async () => {
@@ -145,11 +212,17 @@ export default function DeployView({ projectPath, onBack }: DeployViewProps) {
       {/* Cards */}
       <div className="space-y-4">
         {/* 1. Supabase Setup */}
-        <CollapsibleCard title="Supabase Setup" defaultOpen delay={0}>
+        <CollapsibleCard
+          title="Supabase Setup"
+          open={cardOpen.supabase ?? true}
+          onToggle={() => toggleCard("supabase")}
+          delay={0}
+          cardRef={(el) => { cardRefs.current.supabase = el; }}
+        >
           <div className="space-y-3 text-sm text-zinc-400">
             {isGuide && (
               <p className="text-zinc-500 text-xs italic">
-                This connects your project to its own database instead of sharing Lovable&rsquo;s.
+                {CARD_WHY.supabase}
               </p>
             )}
             <p>Link your project to a Supabase instance and push migrations:</p>
@@ -171,11 +244,17 @@ export default function DeployView({ projectPath, onBack }: DeployViewProps) {
         </CollapsibleCard>
 
         {/* 2. Environment Variables */}
-        <CollapsibleCard title="Environment Variables" defaultOpen delay={100}>
+        <CollapsibleCard
+          title="Environment Variables"
+          open={cardOpen.env ?? true}
+          onToggle={() => toggleCard("env")}
+          delay={100}
+          cardRef={(el) => { cardRefs.current.env = el; }}
+        >
           <div className="space-y-4">
             {isGuide && (
               <p className="text-zinc-500 text-xs italic">
-                Your app needs these credentials to talk to your database securely.
+                {CARD_WHY.env}
               </p>
             )}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -212,10 +291,16 @@ export default function DeployView({ projectPath, onBack }: DeployViewProps) {
         </CollapsibleCard>
 
         {/* 3. DNS Records */}
-        <CollapsibleCard title="Custom Domain &amp; DNS" defaultOpen={!!deployData?.customDomain} delay={200}>
+        <CollapsibleCard
+          title="Custom Domain &amp; DNS"
+          open={cardOpen.dns ?? false}
+          onToggle={() => toggleCard("dns")}
+          delay={200}
+          cardRef={(el) => { cardRefs.current.dns = el; }}
+        >
           {isGuide && (
             <p className="text-zinc-500 text-xs italic mb-3">
-              Points your custom domain to your new hosting so visitors find your site.
+              {CARD_WHY.dns}
             </p>
           )}
           {deployData?.customDomain ? (
@@ -262,11 +347,17 @@ export default function DeployView({ projectPath, onBack }: DeployViewProps) {
         </CollapsibleCard>
 
         {/* 4. Health Check */}
-        <CollapsibleCard title="Health Check" defaultOpen delay={300}>
+        <CollapsibleCard
+          title="Health Check"
+          open={cardOpen.health ?? true}
+          onToggle={() => toggleCard("health")}
+          delay={300}
+          cardRef={(el) => { cardRefs.current.health = el; }}
+        >
           <div className="space-y-3">
             {isGuide && (
               <p className="text-zinc-500 text-xs italic">
-                Confirms your app is actually running after you deploy it.
+                {CARD_WHY.health}
               </p>
             )}
             <p className="text-sm text-zinc-400">
@@ -309,11 +400,17 @@ export default function DeployView({ projectPath, onBack }: DeployViewProps) {
         </CollapsibleCard>
 
         {/* 5. UptimeRobot */}
-        <CollapsibleCard title="UptimeRobot Monitoring" defaultOpen={false} delay={400}>
+        <CollapsibleCard
+          title="UptimeRobot Monitoring"
+          open={cardOpen.uptime ?? false}
+          onToggle={() => toggleCard("uptime")}
+          delay={400}
+          cardRef={(el) => { cardRefs.current.uptime = el; }}
+        >
           <div className="space-y-3">
             {isGuide && (
               <p className="text-zinc-500 text-xs italic">
-                Free monitoring that alerts you immediately if your app goes down.
+                {CARD_WHY.uptime}
               </p>
             )}
             <p className="text-sm text-zinc-400">
@@ -338,34 +435,70 @@ export default function DeployView({ projectPath, onBack }: DeployViewProps) {
           </div>
         </CollapsibleCard>
       </div>
+
+      {/* Guide mode: "You're all set!" completion message */}
+      {isGuide && showComplete && (
+        <div className="mt-6 text-center animate-slide-up relative">
+          <div className="inline-flex items-center gap-2 text-success text-sm font-medium">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            You&rsquo;re all set!
+          </div>
+          {/* Confetti dots */}
+          <div className="relative inline-block ml-2">
+            {[
+              { tx: "24px", ty: "-16px", bg: "bg-success" },
+              { tx: "-20px", ty: "-24px", bg: "bg-accent" },
+              { tx: "32px", ty: "8px", bg: "bg-success" },
+              { tx: "-16px", ty: "12px", bg: "bg-accent" },
+            ].map((dot, i) => (
+              <span
+                key={i}
+                className={`guide-confetti-dot ${dot.bg}`}
+                style={
+                  {
+                    "--tx": dot.tx,
+                    "--ty": dot.ty,
+                    animationDelay: `${i * 50}ms`,
+                  } as React.CSSProperties
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// CollapsibleCard
+// CollapsibleCard — controlled open state
 // ---------------------------------------------------------------------------
 
 function CollapsibleCard({
   title,
-  defaultOpen = true,
+  open,
+  onToggle,
   delay = 0,
+  cardRef,
   children,
 }: {
   title: string;
-  defaultOpen?: boolean;
+  open: boolean;
+  onToggle: () => void;
   delay?: number;
+  cardRef?: (el: HTMLDivElement | null) => void;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-
   return (
     <div
+      ref={cardRef}
       className="bg-surface border border-border rounded-xl overflow-hidden animate-slide-up"
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <button
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={onToggle}
         className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-surface-2/50 transition-colors"
       >
         <h3 className="text-zinc-300 text-sm font-body font-bold tracking-wide">

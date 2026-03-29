@@ -140,6 +140,96 @@ body::before {
 }
 
 /* ------------------------------------------------------------------ */
+/* Guide Mode                                                         */
+/* ------------------------------------------------------------------ */
+.guide-tooltip {
+  animation: guideTooltipIn 200ms ease-out forwards;
+}
+@keyframes guideTooltipIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.guide-bounce {
+  animation: guideBounce 1.5s ease-in-out infinite;
+}
+@keyframes guideBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+.guide-border-pulse {
+  animation: guideBorderPulse 2s ease-in-out infinite;
+}
+@keyframes guideBorderPulse {
+  0%, 100% { border-color: rgba(34, 211, 238, 0.3); }
+  50% { border-color: rgba(34, 211, 238, 0.6); }
+}
+
+.guide-check-pulse {
+  border-left: 2px solid rgba(34, 211, 238, 0.7);
+  animation: guideCheckPulse 2s ease-in-out infinite;
+}
+@keyframes guideCheckPulse {
+  0%, 100% { border-left-color: rgba(34, 211, 238, 0.5); }
+  50% { border-left-color: rgba(34, 211, 238, 1); }
+}
+
+.guide-explanation {
+  max-height: 0; opacity: 0; overflow: hidden;
+  transition: max-height 200ms ease-out, opacity 200ms ease-out;
+}
+.guide-explanation-open {
+  max-height: 60px; opacity: 1;
+}
+
+.guide-bar-enter {
+  animation: guideSlideDown 200ms ease-out forwards;
+}
+@keyframes guideSlideDown {
+  0% { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.guide-text-fade {
+  transition: opacity 150ms ease-out;
+}
+
+.guide-confetti-dot {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  animation: confettiBurst 600ms ease-out forwards;
+}
+@keyframes confettiBurst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx, 20px), var(--ty, -20px)) scale(0); opacity: 0; }
+}
+
+.guide-toast {
+  animation: toastIn 200ms ease-out forwards;
+}
+.guide-toast-out {
+  animation: toastOut 200ms ease-out forwards;
+}
+@keyframes toastIn {
+  0% { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+
+.guide-deploy-grow {
+  animation: guideDeployGrow 2s ease-in-out infinite;
+}
+@keyframes guideDeployGrow {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px 4px rgba(34, 211, 238, 0.15); }
+  50% { transform: scale(1.02); box-shadow: 0 0 30px 8px rgba(34, 211, 238, 0.25); }
+}
+
+/* ------------------------------------------------------------------ */
 /* Reduced motion                                                     */
 /* ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {

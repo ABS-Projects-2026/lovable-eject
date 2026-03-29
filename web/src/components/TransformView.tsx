@@ -58,6 +58,20 @@ const GUIDE_STATUS_DESC: Record<string, string> = {
   "Create health endpoint": "Adding monitoring endpoint...",
 };
 
+// Explanation bar copy for guide mode
+const GUIDE_EXPLANATION_BAR: Record<string, string> = {
+  "Remove Lovable dependencies": "Removing Lovable packages from your project. Standard alternatives will be used instead.",
+  "Replace OAuth calls": "Switching your login system from Lovable\u2019s proprietary auth to Supabase\u2019s built-in authentication.",
+  "Delete Lovable integration folder": "Removing the Lovable connector code. Your app will talk directly to Supabase.",
+  "Remove lovable-tagger from Vite config": "Removing Lovable\u2019s usage tracking from your build process.",
+  "Fix SQL migrations": "Adding safety checks to your database setup files so they won\u2019t cause errors during deployment.",
+  "Clean Lovable domain & OG references": "Replacing Lovable web addresses with placeholders for your own domain.",
+  "Update Capacitor config": "Updating your mobile app\u2019s identity from Lovable\u2019s to yours.",
+  "Create .env.example": "Creating a template file for your database credentials.",
+  "Create vercel.json": "Setting up the configuration for your new Vercel hosting.",
+  "Create health endpoint": "Adding a health check URL so you can monitor your app is running.",
+};
+
 const STEP_DIFFS: Record<string, { before: string[]; after: string[]; guideLabel: string; devLabel: string }> = {
   "Remove Lovable dependencies": {
     before: ['"@lovable.dev/cloud-auth-js": "^1.0.0",', '"lovable-tagger": "^2.0.0",'],
@@ -125,7 +139,13 @@ export default function TransformView({
 }: TransformViewProps) {
   const { mode } = useViewMode();
   const isGuide = mode === "guide";
+  const modeRef = useRef(mode);
   const topRef = useRef<HTMLDivElement>(null);
+
+  // Keep modeRef in sync so drainBuffer can read current mode
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   const [steps, setSteps] = useState<StepState[]>(
     STEP_NAMES.map((name) => ({ name, status: "pending", description: "" }))
@@ -151,6 +171,11 @@ export default function TransformView({
   const bufferSeen = useRef(new Set<string>());
   const rawCompleteRef = useRef(false);
 
+  // Guide mode: explanation bar text
+  const [barText, setBarText] = useState<string | null>(null);
+  const [barFading, setBarFading] = useState(false);
+  const barPrevText = useRef<string | null>(null);
+
   const realComplete = complete && !dryRun;
 
   function enqueueBuffered(name: string, status: StepState["status"], description: string) {
@@ -168,8 +193,11 @@ export default function TransformView({
     setBufferedSteps((prev) =>
       prev.map((s) => s.name === event.name ? { ...s, status: event.status, description: event.description } : s)
     );
-    // Minimum display time per status (fast — animation is confirmation, not a show)
-    const delay = event.status === "running" ? 800 : event.status === "skipped" ? 150 : 300;
+    // Guide mode: 1200ms for running, Dev mode: 800ms (original)
+    const guideMode = modeRef.current === "guide";
+    const delay = event.status === "running"
+      ? (guideMode ? 1200 : 800)
+      : event.status === "skipped" ? 150 : 300;
     setTimeout(() => {
       bufferProcessing.current = false;
       drainBuffer();
@@ -181,6 +209,26 @@ export default function TransformView({
     if (!started) return;
     steps.forEach((step) => enqueueBuffered(step.name, step.status, step.description));
   }, [steps, started]);
+
+  // Update explanation bar text based on running step
+  useEffect(() => {
+    if (!isGuide) return;
+    const running = steps.find((s) => s.status === "running");
+    const newText = running
+      ? GUIDE_EXPLANATION_BAR[running.name] ?? null
+      : complete
+        ? "All done! Follow the checklist below to finish setting up."
+        : null;
+
+    if (newText !== barPrevText.current) {
+      setBarFading(true);
+      setTimeout(() => {
+        setBarText(newText);
+        barPrevText.current = newText;
+        setBarFading(false);
+      }, 150);
+    }
+  }, [steps, complete, isGuide]);
 
   // Auto-scroll to top on real completion
   useEffect(() => {
@@ -222,6 +270,8 @@ export default function TransformView({
     rawCompleteRef.current = false;
     setBufferedSteps(STEP_NAMES.map((name) => ({ name, status: "pending", description: "" })));
     setSteps(STEP_NAMES.map((name) => ({ name, status: "pending", description: "" })));
+    setBarText(null);
+    barPrevText.current = null;
 
     try {
       const response = await fetch("/api/transform", {
@@ -326,6 +376,10 @@ export default function TransformView({
     ? analysis.lovableDeps.length + analysis.lovableFiles.length + analysis.migrations.issues.length
     : 0;
 
+  // Guide mode: find the first unchecked checklist item (excluding last item which is Deploy)
+  const firstUnchecked = NEXT_STEPS.findIndex((_, i) => i < NEXT_STEPS.length - 1 && !checklist.has(i));
+  const allPreDeployChecked = Array.from({ length: NEXT_STEPS.length - 1 }, (_, i) => i).every((i) => checklist.has(i));
+
   return (
     <div className="animate-fade-in" ref={topRef}>
       {/* Success banner — non-dry-run completion */}
@@ -379,25 +433,80 @@ export default function TransformView({
         </p>
       )}
 
+      {/* Guide mode: persistent explanation bar */}
+      {isGuide && started && (
+        <div className="bg-surface border-b border-border rounded-xl px-5 py-3 mb-4 guide-bar-enter">
+          <div className="flex items-center justify-between gap-4">
+            <span className="font-mono text-xs text-accent shrink-0">
+              {runningStep
+                ? `Step ${runningIdx + 1} of ${steps.length}`
+                : complete
+                  ? `${doneCount} of ${steps.length} complete`
+                  : "Ready"}
+            </span>
+            <span
+              className="text-zinc-400 text-sm guide-text-fade text-right"
+              style={{ opacity: barFading ? 0 : 1 }}
+            >
+              {barText ?? (complete
+                ? "All done! Follow the checklist below to finish setting up."
+                : "Ready to migrate. Click \u2018Preview changes\u2019 to see what will change, or \u2018Apply changes\u2019 to start.")}
+            </span>
+          </div>
+        </div>
+      )}
+      {/* Guide mode idle explanation bar (pre-start) */}
+      {isGuide && !started && (
+        <div className="bg-surface border-b border-border rounded-xl px-5 py-3 mb-4 guide-bar-enter">
+          <div className="flex items-center justify-between gap-4">
+            <span className="font-mono text-xs text-accent shrink-0">Ready</span>
+            <span className="text-zinc-400 text-sm text-right">
+              Ready to migrate. Click &lsquo;Preview changes&rsquo; to see what will change, or &lsquo;Apply changes&rsquo; to start.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Next steps checklist — shown prominently for real completion */}
       {realComplete && (
         <div className="bg-surface border border-border rounded-xl p-6 mb-6 animate-slide-up">
           <div className="space-y-4">
             {NEXT_STEPS.map((item, i) => {
               const isLast = i === NEXT_STEPS.length - 1;
+              const isChecked = checklist.has(i);
+              const isHighlighted = isGuide && !isLast && firstUnchecked === i;
+              const isCompleted = isGuide && !isLast && isChecked;
+
               return (
-                <div key={i} className={isLast ? "" : "border-b border-border pb-4"}>
+                <div
+                  key={i}
+                  className={`${isLast ? "" : "border-b border-border pb-4"} ${
+                    isHighlighted ? "guide-check-pulse pl-3" : ""
+                  } ${isCompleted ? "border-l-2 border-l-success pl-3" : ""}`}
+                >
+                  {/* Guide mode: "Start with this one" callout on first unchecked */}
+                  {isGuide && isHighlighted && i === firstUnchecked && (
+                    <div className="text-accent mb-1" style={{ fontSize: 12 }}>
+                      {i === 0 ? "Start with this one \u2193" : "Next up \u2193"}
+                    </div>
+                  )}
                   <label className="flex items-start gap-3 cursor-pointer group">
                     {!isLast && (
                       <input
                         type="checkbox"
-                        checked={checklist.has(i)}
+                        checked={isChecked}
                         onChange={() => toggleCheck(i)}
                         className="accent-success w-4 h-4 mt-1 shrink-0"
                       />
                     )}
                     <div className="flex-1">
-                      <div className={`text-sm font-medium ${checklist.has(i) && !isLast ? "text-zinc-600 line-through" : "text-zinc-200"}`}>
+                      <div className={`text-sm font-medium ${
+                        isCompleted
+                          ? "text-zinc-600 line-through opacity-60"
+                          : isChecked && !isLast
+                            ? "text-zinc-600 line-through"
+                            : "text-zinc-200"
+                      }`}>
                         <span className="text-zinc-500 mr-2">{i + 1}.</span>
                         {item.text}
                         {item.command && <CopyPill text={item.command} />}
@@ -406,12 +515,24 @@ export default function TransformView({
                         <div className="text-xs text-zinc-500 mt-1 ml-5">{item.why}</div>
                       )}
                       {isLast && (
-                        <button
-                          onClick={onDeploy}
-                          className="mt-3 w-full py-3 bg-accent text-zinc-900 font-bold text-sm rounded-xl hover:bg-accent/90 hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98] animate-pulse-glow"
-                        >
-                          Continue to Deploy &rarr;
-                        </button>
+                        <>
+                          {/* Guide mode: "Last step" callout when all pre-deploy items checked */}
+                          {isGuide && allPreDeployChecked && (
+                            <div className="text-accent mt-2" style={{ fontSize: 12 }}>
+                              Last step &mdash; let&rsquo;s get your app live &darr;
+                            </div>
+                          )}
+                          <button
+                            onClick={onDeploy}
+                            className={`mt-3 w-full py-3 bg-accent text-zinc-900 font-bold text-sm rounded-xl hover:bg-accent/90 hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98] ${
+                              isGuide && allPreDeployChecked
+                                ? "guide-deploy-grow"
+                                : "animate-pulse-glow"
+                            }`}
+                          >
+                            Continue to Deploy &rarr;
+                          </button>
+                        </>
                       )}
                     </div>
                   </label>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useViewMode } from "../context/ViewModeContext";
 
 interface FileTreeScannerProps {
   projectPath: string;
@@ -36,18 +37,54 @@ const STATUS_COLORS = {
   green: "bg-success",
 };
 
+const GUIDE_TOOLTIPS: Record<string, string> = {
+  "package.json": "Your project\u2019s dependency list \u2014 checking for Lovable-specific packages",
+  "src/hooks/useAuth.tsx": "Your login page \u2014 checking if it uses Lovable\u2019s auth system",
+  "src/integrations/lovable/index.ts": "The Lovable connector \u2014 this will need removing",
+  "src/integrations/lovable/": "Lovable\u2019s proprietary code folder",
+  "src/integrations/supabase/": "Your database connection \u2014 this stays",
+  "supabase/migrations/": "Database setup files \u2014 checking for common issues",
+  "capacitor.config.ts": "Mobile app settings \u2014 checking for Lovable deep links",
+  "vite.config.ts": "Build configuration \u2014 checking for Lovable tracking code",
+  "index.html": "Your homepage \u2014 checking for Lovable domain references",
+};
+
 export default function FileTreeScanner({ projectPath }: FileTreeScannerProps) {
+  const { mode } = useViewMode();
+  const isGuide = mode === "guide";
   const [entryCount, setEntryCount] = useState(0);
   const [dotCount, setDotCount] = useState(0);
+  const [tooltipIdx, setTooltipIdx] = useState<number | null>(null);
 
+  // Reveal entries — guide mode is slower so tooltips are readable
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
+    const interval = isGuide ? 200 : 80;
     for (let i = 0; i < TREE.length; i++) {
-      timers.push(setTimeout(() => setEntryCount(i + 1), i * 80));
-      timers.push(setTimeout(() => setDotCount(i + 1), i * 80 + 200));
+      timers.push(setTimeout(() => setEntryCount(i + 1), i * interval));
+      timers.push(setTimeout(() => setDotCount(i + 1), i * interval + 200));
     }
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [isGuide]);
+
+  // Guide-mode tooltip scheduling
+  useEffect(() => {
+    if (!isGuide) {
+      setTooltipIdx(null);
+      return;
+    }
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const interval = 200;
+    for (let i = 0; i < TREE.length; i++) {
+      if (GUIDE_TOOLTIPS[TREE[i].path]) {
+        timers.push(setTimeout(() => setTooltipIdx(i), i * interval));
+      }
+    }
+    timers.push(setTimeout(() => setTooltipIdx(null), TREE.length * interval + 1500));
+    return () => timers.forEach(clearTimeout);
+  }, [isGuide]);
+
+  const tooltipText = tooltipIdx !== null ? GUIDE_TOOLTIPS[TREE[tooltipIdx]?.path] ?? null : null;
 
   return (
     <div className="animate-fade-in">
@@ -73,7 +110,7 @@ export default function FileTreeScanner({ projectPath }: FileTreeScannerProps) {
             return (
               <div
                 key={entry.path}
-                className="flex items-center justify-between py-[3px] transition-all duration-300"
+                className="flex items-center justify-between py-[3px] transition-all duration-300 relative"
                 style={{
                   paddingLeft: entry.depth * 16,
                   opacity: visible ? 1 : 0,
@@ -99,6 +136,17 @@ export default function FileTreeScanner({ projectPath }: FileTreeScannerProps) {
             );
           })}
         </div>
+
+        {/* Guide tooltip — positioned outside scroll area, inside card */}
+        {isGuide && tooltipIdx !== null && tooltipText && (
+          <div
+            key={tooltipIdx}
+            className="absolute right-5 guide-tooltip bg-surface-2 border border-border rounded-lg py-2 px-3 text-zinc-400 font-body z-10 pointer-events-none"
+            style={{ fontSize: 12, maxWidth: 280, top: 76 + tooltipIdx * 22 }}
+          >
+            {tooltipText}
+          </div>
+        )}
 
         {/* Footer counter */}
         <div className="px-5 py-2 border-t border-border">

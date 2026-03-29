@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { AnalysisResult } from "../App";
 import { useViewMode } from "../context/ViewModeContext";
 import CountUp from "./CountUp";
@@ -116,6 +116,18 @@ function friendlyFile(path: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Guide info descriptions
+// ---------------------------------------------------------------------------
+
+const SECTION_INFO: Record<string, string> = {
+  deps: "These packages only work with Lovable\u2019s hosting. We\u2019ll swap them for standard open-source alternatives.",
+  schema: "This is your database structure. It stays the same \u2014 we just fix how it\u2019s set up.",
+  refs: "These are places in your code that reference Lovable. Each one gets replaced with a standard alternative.",
+  migrations: "These are database setup commands that could fail during deployment. We add safety checks to prevent errors.",
+  capacitor: "Your mobile app configuration. The app ID and deep links need updating from Lovable\u2019s to yours.",
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -127,6 +139,25 @@ export default function Dashboard({
   const { mode } = useViewMode();
   const isGuide = mode === "guide";
   const risk = riskStyles[analysis.risk.level];
+
+  // Guide mode: info icon toggle state
+  const [infoOpen, setInfoOpen] = useState<Record<string, boolean>>({});
+  const toggleInfo = (key: string) =>
+    setInfoOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // Guide mode: "Start here" visibility via IntersectionObserver
+  const [showStartHere, setShowStartHere] = useState(true);
+  const riskBannerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isGuide || !riskBannerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStartHere(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    observer.observe(riskBannerRef.current);
+    return () => observer.disconnect();
+  }, [isGuide]);
 
   // Group references by type
   const refGroups = new Map<string, typeof analysis.lovableFiles>();
@@ -183,8 +214,18 @@ export default function Dashboard({
         </div>
       </div>
 
+      {/* Guide mode: "Start here" indicator */}
+      {isGuide && showStartHere && (
+        <div className="text-center mb-2">
+          <span className="text-accent guide-bounce inline-block" style={{ fontSize: 13 }}>
+            Start here &darr;
+          </span>
+        </div>
+      )}
+
       {/* Hero risk banner with inline stats */}
       <div
+        ref={riskBannerRef}
         className={`${risk.bg} ${risk.border} border rounded-xl p-5 mb-6 animate-slide-up`}
       >
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
@@ -246,9 +287,26 @@ export default function Dashboard({
           className="mb-6 animate-slide-up"
           style={{ animationDelay: "80ms", animationFillMode: "backwards" }}
         >
-          <div className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-            {isGuide ? "Lovable packages to remove" : "Dependencies to remove"}
+          <div className="flex items-center mb-2">
+            <div className="text-zinc-500 text-xs uppercase tracking-widest">
+              {isGuide ? "Lovable packages to remove" : "Dependencies to remove"}
+            </div>
+            {isGuide && (
+              <button
+                onClick={() => toggleInfo("deps")}
+                className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                aria-label="What's this?"
+                style={{ fontSize: 14 }}
+              >
+                &#9432;
+              </button>
+            )}
           </div>
+          {isGuide && (
+            <div className={`guide-explanation ${infoOpen.deps ? "guide-explanation-open" : ""} mb-2`}>
+              <p className="text-zinc-500 text-xs">{SECTION_INFO.deps}</p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {analysis.lovableDeps.map((dep) => (
               <span
@@ -279,9 +337,26 @@ export default function Dashboard({
           className="bg-surface border border-border rounded-xl p-5 hover:border-accent/30 transition-colors duration-200 animate-slide-up"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          <h3 className="text-zinc-500 text-xs uppercase tracking-widest mb-4 pb-3 border-b border-border">
-            Supabase Schema
-          </h3>
+          <div className="flex items-center mb-4 pb-3 border-b border-border">
+            <h3 className="text-zinc-500 text-xs uppercase tracking-widest">
+              Supabase Schema
+            </h3>
+            {isGuide && (
+              <button
+                onClick={() => toggleInfo("schema")}
+                className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                aria-label="What's this?"
+                style={{ fontSize: 14 }}
+              >
+                &#9432;
+              </button>
+            )}
+          </div>
+          {isGuide && (
+            <div className={`guide-explanation ${infoOpen.schema ? "guide-explanation-open" : ""} mb-3`}>
+              <p className="text-zinc-500 text-xs">{SECTION_INFO.schema}</p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Tables", n: analysis.supabaseSchema.tables.length },
@@ -302,9 +377,26 @@ export default function Dashboard({
             className="bg-surface border border-border rounded-xl p-5 hover:border-accent/30 transition-colors duration-200 animate-slide-up"
             style={{ animationDelay: "160ms", animationFillMode: "backwards" }}
           >
-            <h3 className="text-zinc-500 text-xs uppercase tracking-widest mb-4 pb-3 border-b border-border">
-              {isGuide ? "Mobile App" : "Capacitor (Mobile)"}
-            </h3>
+            <div className="flex items-center mb-4 pb-3 border-b border-border">
+              <h3 className="text-zinc-500 text-xs uppercase tracking-widest">
+                {isGuide ? "Mobile App" : "Capacitor (Mobile)"}
+              </h3>
+              {isGuide && (
+                <button
+                  onClick={() => toggleInfo("capacitor")}
+                  className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  aria-label="What's this?"
+                  style={{ fontSize: 14 }}
+                >
+                  &#9432;
+                </button>
+              )}
+            </div>
+            {isGuide && (
+              <div className={`guide-explanation ${infoOpen.capacitor ? "guide-explanation-open" : ""} mb-3`}>
+                <p className="text-zinc-500 text-xs">{SECTION_INFO.capacitor}</p>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="text-zinc-500 text-xs mb-1">App ID</div>
@@ -330,9 +422,11 @@ export default function Dashboard({
         )}
       </div>
 
-      {/* Guidance card */}
+      {/* Guidance card — pulsing border in guide mode */}
       <div
-        className="bg-accent/5 border border-accent/20 rounded-xl p-5 mb-6 animate-slide-up"
+        className={`bg-accent/5 border rounded-xl p-5 mb-6 animate-slide-up ${
+          isGuide ? "guide-border-pulse" : "border-accent/20"
+        }`}
         style={{ animationDelay: "180ms", animationFillMode: "backwards" }}
       >
         <div className="text-zinc-300 text-sm">
@@ -360,6 +454,9 @@ export default function Dashboard({
           count={analysis.lovableFiles.length}
           defaultOpen={false}
           delay={200}
+          guideInfo={isGuide ? SECTION_INFO.refs : undefined}
+          guideInfoOpen={infoOpen.refs}
+          onToggleGuideInfo={() => toggleInfo("refs")}
         >
           {refGroups.size === 0 ? (
             <div className="text-success text-sm">
@@ -411,6 +508,9 @@ export default function Dashboard({
           count={analysis.migrations.issues.length}
           defaultOpen={false}
           delay={240}
+          guideInfo={isGuide ? SECTION_INFO.migrations : undefined}
+          guideInfoOpen={infoOpen.migrations}
+          onToggleGuideInfo={() => toggleInfo("migrations")}
         >
           {migrationGroups.size === 0 ? (
             <div className="text-success text-sm">
@@ -445,12 +545,18 @@ function CollapsibleSection({
   count,
   defaultOpen = false,
   delay = 0,
+  guideInfo,
+  guideInfoOpen,
+  onToggleGuideInfo,
   children,
 }: {
   title: string;
   count: number;
   defaultOpen?: boolean;
   delay?: number;
+  guideInfo?: string;
+  guideInfoOpen?: boolean;
+  onToggleGuideInfo?: () => void;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -468,6 +574,19 @@ function CollapsibleSection({
           <h3 className="text-zinc-400 text-xs uppercase tracking-widest">
             {title}
           </h3>
+          {guideInfo && onToggleGuideInfo && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleGuideInfo();
+              }}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+              aria-label="What's this?"
+              style={{ fontSize: 14 }}
+            >
+              &#9432;
+            </button>
+          )}
           {count > 0 && <Badge color="warn">{count}</Badge>}
           {count === 0 && (
             <span className="text-success text-[10px] font-mono">&#10003;</span>
@@ -481,6 +600,11 @@ function CollapsibleSection({
           &#8722;
         </span>
       </button>
+      {guideInfo && (
+        <div className={`guide-explanation ${guideInfoOpen ? "guide-explanation-open" : ""} px-5`}>
+          <p className="text-zinc-500 text-xs pb-2">{guideInfo}</p>
+        </div>
+      )}
       <div
         className={`transition-all duration-200 ease-out overflow-hidden ${
           open ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"

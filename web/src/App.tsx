@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import PathInput from "./components/PathInput";
 import Dashboard from "./components/Dashboard";
 import TransformView from "./components/TransformView";
@@ -62,6 +62,29 @@ export default function App() {
   const [error, setError] = useState("");
   const { mode, setMode } = useViewMode();
 
+  // Mode switch toast
+  const [toast, setToast] = useState<{ text: string; leaving: boolean } | null>(null);
+  const isFirstRender = useRef(true);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    clearTimeout(toastTimer.current);
+    const text =
+      mode === "guide"
+        ? "Guide mode \u2014 we\u2019ll explain each step as you go"
+        : "Dev mode \u2014 technical details, full speed";
+    setToast({ text, leaving: false });
+    toastTimer.current = setTimeout(() => {
+      setToast((prev) => (prev ? { ...prev, leaving: true } : null));
+      toastTimer.current = setTimeout(() => setToast(null), 200);
+    }, 2000);
+    return () => clearTimeout(toastTimer.current);
+  }, [mode]);
+
   const handleAnalyse = async (path: string) => {
     setProjectPath(path);
     setLoading(true);
@@ -105,6 +128,18 @@ export default function App() {
   return (
     <div className="min-h-screen relative">
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Mode switch toast */}
+      {toast && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-surface-2 border border-border rounded-lg px-4 py-2 text-zinc-400 font-body pointer-events-none ${
+            toast.leaving ? "guide-toast-out" : "guide-toast"
+          }`}
+          style={{ fontSize: 13 }}
+        >
+          {toast.text}
+        </div>
+      )}
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
         {/* Header */}
