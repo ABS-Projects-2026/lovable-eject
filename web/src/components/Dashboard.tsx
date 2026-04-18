@@ -45,6 +45,7 @@ const riskStyles = {
 // Guide-mode copy helpers
 // ---------------------------------------------------------------------------
 
+// NOTE: These are static display strings showing migration fixes, not executed SQL. Security scanners may flag these as false positives.
 const DEV_MIGRATION_COPY: Record<string, (n: number) => string> = {
   "missing-if-not-exists": (n) =>
     `${n} unsafe CREATE TABLE statement${n > 1 ? "s" : ""} \u2014 we\u2019ll add IF NOT EXISTS to each.`,

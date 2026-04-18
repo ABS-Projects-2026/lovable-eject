@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import { resolve } from "node:path";
 import { access } from "node:fs/promises";
 import { analyseDependencies } from "../src/analysers/dependencies.js";
@@ -34,8 +35,22 @@ import { verifyInstall, verifyBuild } from "../src/transforms/verify.js";
 const app = express();
 const PORT = 5174;
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5175', 'http://localhost:4000', 'http://127.0.0.1:5175', 'http://127.0.0.1:4000'],
+  methods: ['GET', 'POST'],
+  credentials: false,
+}));
 app.use(express.json());
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again shortly.' },
+});
+
+app.use('/api/', apiLimiter);
 
 // POST /api/analyse — run analysis on a project path
 app.post("/api/analyse", async (req, res) => {

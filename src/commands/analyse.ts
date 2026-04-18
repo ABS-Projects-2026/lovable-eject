@@ -8,7 +8,7 @@ import { analyseCapacitor } from "../analysers/capacitor.js";
 import { assessRisk } from "../analysers/risk.js";
 import { writeReport } from "../utils/report.js";
 import type { AnalysisResult } from "../types.js";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 
 interface AnalyseOptions {
   json?: boolean;
@@ -69,7 +69,7 @@ export async function analyseCommand(
           : process.platform === "win32"
             ? "start"
             : "xdg-open";
-      exec(`${openCmd} "${reportPath}"`);
+      execFile(openCmd, [reportPath]);
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
