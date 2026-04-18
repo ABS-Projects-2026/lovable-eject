@@ -12,3 +12,21 @@ web/dist/
 landing/node_modules/
 landing/dist/
 videos/
+
+# Cryptographic keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Build artifacts
+.next/
+build/
+.cache/
+.parcel-cache/
+
+# Environment
+.env.staging
+.env.development
